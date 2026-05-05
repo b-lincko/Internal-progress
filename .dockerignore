@@ -1,0 +1,13 @@
+# Don't copy local env/config into Docker image
+.env
+.env.local
+.env.*.local
+node_modules
+.next
+*.log
+npm-debug.log*
+.git
+.gitignore
+README.md
+dev.log
+start.log

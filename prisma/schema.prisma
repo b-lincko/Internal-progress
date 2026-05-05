@@ -1,0 +1,340 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  password_hash String
+  role          Role     @default(Viewer)
+  created_at    DateTime @default(now())
+
+  ownedControls     Control[]          @relation("ControlOwner")
+  evidence          Evidence[]
+  chatMessages      ChatMessage[]      @relation("SentMessages")
+  receivedMessages  ChatMessage[]      @relation("ReceivedMessages")
+  documents         Document[]
+  assignedDeadlines ScheduleDeadline[] @relation("DeadlineAssignees")
+  createdDeadlines  ScheduleDeadline[] @relation("DeadlineCreator")
+  roomMemberships   ChatRoomMember[]
+  notifications     Notification[]
+  projectMembers    ProjectMember[]
+  createdProjects   Project[]          @relation("ProjectCreator")
+  uploads           Upload[]
+
+  @@map("users")
+}
+
+enum Role {
+  Admin
+  Manager
+  Viewer
+}
+
+model Control {
+  id                   String        @id @default(uuid())
+  control_id           String        @unique
+  domain               String
+  title                String
+  description          String
+  status               ControlStatus @default(Not_Started)
+  implementation_notes String?
+  owner_id             String?
+  updated_at           DateTime      @updatedAt
+
+  owner       User?              @relation("ControlOwner", fields: [owner_id], references: [id])
+  evidence    Evidence[]
+  poams       POAM[]
+  deadlines   ScheduleDeadline[]
+  subcontrols SubControl[]
+
+  @@map("controls")
+}
+
+enum ControlStatus {
+  Not_Started
+  In_Progress
+  Implemented
+}
+
+model Evidence {
+  id          String   @id @default(uuid())
+  control_id  String
+  file_name   String
+  file_path   String
+  uploaded_by String
+  uploaded_at DateTime @default(now())
+
+  control Control @relation(fields: [control_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [uploaded_by], references: [id])
+
+  @@map("evidence")
+}
+
+model POAM {
+  id               String     @id @default(uuid())
+  control_id       String
+  weakness         String
+  remediation_plan String
+  severity         Severity   @default(Medium)
+  due_date         DateTime
+  status           POAMStatus @default(Open)
+
+  control Control @relation(fields: [control_id], references: [id], onDelete: Cascade)
+
+  @@map("poams")
+}
+
+enum Severity {
+  Low
+  Medium
+  High
+  Critical
+}
+
+enum POAMStatus {
+  Open
+  In_Progress
+  Completed
+}
+
+model Document {
+  id          String       @id @default(uuid())
+  title       String
+  content     String?
+  file_name   String?
+  file_path   String?
+  doc_type    DocumentType @default(File)
+  uploaded_by String
+  uploaded_at DateTime     @default(now())
+  updated_at  DateTime     @updatedAt
+  is_global   Boolean      @default(false)
+
+  user User @relation(fields: [uploaded_by], references: [id])
+
+  @@map("documents")
+}
+
+enum DocumentType {
+  File
+  Text
+  Link
+}
+
+model Upload {
+  id          String   @id @default(uuid())
+  file_name   String
+  file_path   String
+  file_type   String?
+  file_size   Int?
+  uploaded_by String
+  uploaded_at DateTime @default(now())
+  related_to  String? // "control", "document", "project"
+  related_id  String? // ID of related entity
+
+  user User @relation(fields: [uploaded_by], references: [id])
+
+  @@map("uploads")
+}
+
+model ScheduleDeadline {
+  id          String         @id @default(uuid())
+  title       String
+  description String?
+  due_date    DateTime
+  control_id  String?
+  status      ScheduleStatus @default(Scheduled)
+  priority    Priority       @default(Medium)
+  created_by  String
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @updatedAt
+
+  control       Control?       @relation(fields: [control_id], references: [id], onDelete: Cascade)
+  creator       User           @relation("DeadlineCreator", fields: [created_by], references: [id])
+  assignees     User[]         @relation("DeadlineAssignees")
+  notifications Notification[]
+
+  @@map("schedule_deadlines")
+}
+
+enum ScheduleStatus {
+  Scheduled
+  In_Progress
+  Completed
+  Overdue
+}
+
+enum Priority {
+  Low
+  Medium
+  High
+  Critical
+}
+
+model ChatRoom {
+  id         String   @id @default(uuid())
+  name       String
+  type       RoomType @default(Global)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  members  ChatRoomMember[]
+  messages ChatMessage[]
+
+  @@map("chat_rooms")
+}
+
+enum RoomType {
+  Global
+  Private
+}
+
+model ChatRoomMember {
+  id        String   @id @default(uuid())
+  room_id   String
+  user_id   String
+  joined_at DateTime @default(now())
+
+  room ChatRoom @relation(fields: [room_id], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([room_id, user_id])
+  @@map("chat_room_members")
+}
+
+model ChatMessage {
+  id           String   @id @default(uuid())
+  user_id      String
+  room_id      String
+  recipient_id String?
+  message      String
+  file_name    String?
+  file_path    String?
+  file_type    String?
+  is_read      Boolean  @default(false)
+  created_at   DateTime @default(now())
+
+  user      User     @relation("SentMessages", fields: [user_id], references: [id])
+  room      ChatRoom @relation(fields: [room_id], references: [id], onDelete: Cascade)
+  recipient User?    @relation("ReceivedMessages", fields: [recipient_id], references: [id])
+
+  @@map("chat_messages")
+}
+
+model Notification {
+  id         String           @id @default(uuid())
+  user_id    String
+  type       NotificationType @default(System)
+  title      String
+  body       String?
+  link       String?
+  is_read    Boolean          @default(false)
+  created_at DateTime         @default(now())
+
+  user        User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  deadline    ScheduleDeadline? @relation(fields: [deadline_id], references: [id])
+  deadline_id String?
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  Chat
+  System
+  Mention
+  Alert
+  Schedule
+  Document
+  Upload
+  Project
+  Call
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(Planning)
+  priority    Priority      @default(Medium)
+  start_date  DateTime?
+  end_date    DateTime?
+  progress    Int           @default(0)
+  created_by  String
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+
+  creator User            @relation(fields: [created_by], references: [id], name: "ProjectCreator")
+  members ProjectMember[]
+  tasks   ProjectTask[]
+
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  Planning
+  Active
+  On_Hold
+  Completed
+  Cancelled
+}
+
+model ProjectMember {
+  id         String   @id @default(uuid())
+  project_id String
+  user_id    String
+  role       String   @default("Member")
+  joined_at  DateTime @default(now())
+
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([project_id, user_id])
+  @@map("project_members")
+}
+
+model ProjectTask {
+  id           String     @id @default(uuid())
+  project_id   String
+  title        String
+  description  String?
+  status       TaskStatus @default(Todo)
+  priority     Priority   @default(Medium)
+  assigned_to  String?
+  due_date     DateTime?
+  completed_at DateTime?
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@map("project_tasks")
+}
+
+enum TaskStatus {
+  Todo
+  In_Progress
+  Review
+  Done
+}
+
+model SubControl {
+  id          String        @id @default(uuid())
+  control_id  String
+  name        String
+  description String?
+  status      ControlStatus @default(Not_Started)
+  type        String
+  notes       String?
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+
+  control Control @relation(fields: [control_id], references: [id], onDelete: Cascade)
+
+  @@map("subcontrols")
+}
