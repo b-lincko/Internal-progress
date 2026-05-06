@@ -191,36 +191,49 @@ rm -rf "$APP_DIR/node_modules/.prisma" 2>/dev/null || true
 npx prisma generate
 ok "Prisma client generated"
 
-# Check if migrations table exists and if there's a failed migration
-MIG_FAILED=$($SUDO -u postgres psql -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL;" 2>/dev/null || echo "0")
+# ─── 9. Migrations ───────────────────────────────────────────
+info "Checking migrations..."
 
-if [[ "$MIG_FAILED" -gt 0 ]]; then
-    warn "Found $MIG_FAILED failed migration(s). Resolving..."
-    # Try to resolve the failed one
-    FAILED_NAME=$($SUDO -u postgres psql -d "$DB_NAME" -tAc "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NULL LIMIT 1;" 2>/dev/null || echo "")
-    if [[ -n "$FAILED_NAME" ]]; then
-        npx prisma migrate resolve --rolled-back "$FAILED_NAME" 2>/dev/null || \
-        npx prisma migrate resolve --applied "$FAILED_NAME" 2>/dev/null || \
-        warn "Could not auto-resolve $FAILED_NAME"
+# Check if _prisma_migrations table exists (indicates DB was migrated before)
+MIG_TABLE_EXISTS=$($SUDO -u postgres psql -d "$DB_NAME" -tAc "SELECT 1 FROM information_schema.tables WHERE table_name = '_prisma_migrations';" 2>/dev/null || echo "0")
+
+if [[ "$MIG_TABLE_EXISTS" == "1" ]]; then
+    # Check for failed migrations
+    MIG_FAILED=$($SUDO -u postgres psql -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL;" 2>/dev/null || echo "0")
+    
+    if [[ "$MIG_FAILED" -gt 0 ]]; then
+        warn "Found $MIG_FAILED failed migration(s)."
+        FAILED_NAME=$($SUDO -u postgres psql -d "$DB_NAME" -tAc "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NULL LIMIT 1;" 2>/dev/null || echo "")
+        
+        if [[ -n "$FAILED_NAME" ]]; then
+            warn "Failed migration: $FAILED_NAME"
+            warn "Marking as rolled back..."
+            npx prisma migrate resolve --rolled-back "$FAILED_NAME" 2>/dev/null || {
+                warn "Auto-resolve failed. Cleaning migration table..."
+                $SUDO -u postgres psql -d "$DB_NAME" -c "DELETE FROM _prisma_migrations WHERE finished_at IS NULL;" 2>/dev/null || true
+            }
+        fi
     fi
-fi
-
-# Try deploy first (no shadow DB)
-if npx prisma migrate deploy 2>/dev/null; then
-    ok "Migrations applied (deploy)"
-else
-    warn "Migrate deploy failed. Trying migrate dev..."
-    npx prisma migrate dev --name init --skip-generate --skip-seed || {
-        warn "Migrate dev also failed. Resetting database..."
+    
+    # Try deploy first (no shadow DB needed)
+    if npx prisma migrate deploy; then
+        ok "Migrations applied (deploy)"
+    else
+        warn "Migrate deploy failed after resolving. Full reset needed..."
         $SUDO -u postgres psql -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
         $SUDO -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" 2>/dev/null || true
         $SUDO -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
+        $SUDO -u postgres psql -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;" 2>/dev/null || true
         npx prisma migrate deploy
         ok "Database reset and migrations applied"
-    }
+    fi
+else
+    # Fresh database, just deploy
+    npx prisma migrate deploy
+    ok "Migrations applied (fresh DB)"
 fi
 
-# ─── 9. Seed ─────────────────────────────────────────────────
+# ─── 10. Seed ────────────────────────────────────────────────
 info "Checking seed data..."
 SEED_COUNT=$($SUDO -u postgres psql -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
 if [[ "$SEED_COUNT" -gt 0 ]]; then
@@ -232,7 +245,7 @@ else
     ok "Database seeded"
 fi
 
-# ─── 10. Build ───────────────────────────────────────────────
+# ─── 11. Build ───────────────────────────────────────────────
 info "Checking Next.js build..."
 if [[ -d "$APP_DIR/.next" && -f "$APP_DIR/.next/standalone/server.js" ]]; then
     ok "Build exists"
@@ -243,7 +256,7 @@ else
     ok "Build completed"
 fi
 
-# ─── 11. Start Script ────────────────────────────────────────
+# ─── 12. Start Script ────────────────────────────────────────
 info "Checking start-https.sh..."
 if [[ -f "$APP_DIR/start-https.sh" ]]; then
     ok "start-https.sh exists"
@@ -277,7 +290,7 @@ EOF
     ok "start-https.sh created"
 fi
 
-# ─── 12. Launch ──────────────────────────────────────────────
+# ─── 13. Launch ──────────────────────────────────────────────
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║                   ✅ READY TO LAUNCH!                        ║"

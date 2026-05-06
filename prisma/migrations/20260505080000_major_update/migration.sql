@@ -77,6 +77,9 @@ ALTER TABLE "notifications"
 -- 4. PROJECTS: New tables
 -- ============================================================
 
+-- Create Priority enum (needed for projects and project_tasks)
+CREATE TYPE "Priority" AS ENUM ('Low', 'Medium', 'High', 'Critical');
+
 -- Create ProjectStatus enum
 CREATE TYPE "ProjectStatus" AS ENUM ('Planning', 'Active', 'On_Hold', 'Completed', 'Cancelled');
 
