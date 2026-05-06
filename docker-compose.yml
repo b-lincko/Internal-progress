@@ -16,8 +16,10 @@ services:
       POSTGRES_DB: cmmc2
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "127.0.0.1:5432:5432"  # Only bind to localhost for security
+    # Port 5432 is already used by system PostgreSQL
+    # Only expose to Docker network (not host) to avoid conflict
+    expose:
+      - "5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U cmmc -d cmmc2"]
       interval: 5s
