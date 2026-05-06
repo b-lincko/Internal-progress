@@ -12,11 +12,12 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Copy dependency files first (better Docker layer caching)
-COPY package.json package-lock.json ./
+# Note: package-lock.json is optional - npm install works without it
+COPY package.json ./
 COPY prisma ./prisma/
 
-# Install ALL dependencies (including devDependencies for build)
-RUN npm ci
+# Install dependencies (works with or without package-lock.json)
+RUN npm install
 
 # Generate Prisma client
 RUN npx prisma generate
