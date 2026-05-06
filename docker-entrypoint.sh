@@ -31,7 +31,7 @@ echo "[OK] SSL certificates ready"
 echo "[INFO] Waiting for database..."
 RETRIES=30
 while [ $RETRIES -gt 0 ]; do
-    if npx prisma db execute --stdin <<< "SELECT 1;" > /dev/null 2>&1; then
+    if echo "SELECT 1;" | npx prisma db execute --stdin > /dev/null 2>&1; then
         echo "[OK] Database is ready"
         break
     fi
@@ -51,7 +51,7 @@ npx prisma migrate deploy
 echo "[OK] Migrations applied"
 
 # Seed database if empty
-USER_COUNT=$(npx prisma db execute --stdin <<< "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d ' \n' || echo "0")
+USER_COUNT=$(echo "SELECT COUNT(*) FROM users;" | npx prisma db execute --stdin 2>/dev/null | tr -d ' \n' || echo "0")
 if [ "$USER_COUNT" = "0" ]; then
     echo "[INFO] Database is empty. Seeding..."
     if [ -f "./prisma/seed.ts" ]; then
