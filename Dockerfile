@@ -12,7 +12,7 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Copy dependency files first (better Docker layer caching)
-# Note: package-lock.json is optional - npm install works without it
+# Note: package-lock.json may not exist in git, so we use npm install
 COPY package.json ./
 COPY prisma ./prisma/
 
@@ -43,8 +43,8 @@ ENV PORT=3000
 ENV HTTP_PORT=3001
 
 # Create non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nodejs
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nodejs
 
 # Copy standalone build output
 COPY --from=builder --chown=nodejs:nodejs /app/.next/standalone ./
@@ -62,8 +62,8 @@ COPY --chown=nodejs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x docker-entrypoint.sh
 
 # Create uploads directory with correct ownership
-RUN mkdir -p public/uploads/chat \
-    && chown -R nodejs:nodejs /app
+RUN mkdir -p public/uploads/chat && \
+    chown -R nodejs:nodejs /app
 
 # Switch to non-root user
 USER nodejs
