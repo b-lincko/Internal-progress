@@ -1,8 +1,7 @@
-# CMMC Tracker - Docker Compose
-# Full production deployment with PostgreSQL + Next.js HTTPS
+# CMMC Tracker - Docker Compose (HTTP Only)
+# Simple, works out of the box. No SSL certificate issues.
 
 services:
-  # PostgreSQL Database
   db:
     image: postgres:16-alpine
     container_name: cmmc-db
@@ -13,7 +12,6 @@ services:
       POSTGRES_DB: cmmc2
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    # Only expose to Docker network, not host (avoids port conflict with system Postgres)
     expose:
       - "5432"
     healthcheck:
@@ -24,7 +22,6 @@ services:
     networks:
       - cmmc-network
 
-  # CMMC Tracker App
   app:
     build:
       context: .
@@ -36,34 +33,20 @@ services:
       DATABASE_URL: postgresql://cmmc:${DB_PASSWORD:-changeme-strong-password}@db:5432/cmmc2
       JWT_SECRET: ${JWT_SECRET:-changeme-jwt-secret-key-min-32-chars}
       PORT: 3000
-      HTTP_PORT: 3001
       NODE_ENV: production
     ports:
-      - "3000:3000"  # HTTPS
-      - "3001:3001"  # HTTP redirect
+      - "3000:3000"
     volumes:
-      # Persist uploads outside container
       - uploads:/app/public/uploads
-      # Note: SSL certs are generated inside the container by docker-entrypoint.sh
-      # If you have real certs, mount them:
-      # - ./certs:/app/certs:ro
     depends_on:
       db:
         condition: service_healthy
     networks:
       - cmmc-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
 volumes:
   postgres_data:
-    driver: local
   uploads:
-    driver: local
 
 networks:
   cmmc-network:
