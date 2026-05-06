@@ -2,14 +2,14 @@ const { createServer } = require('https');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
+const { execSync } = require('child_process');
 
 const certsDir = path.join(__dirname, 'certs');
 const port = parseInt(process.env.PORT, 10) || 3000;
 const httpPort = parseInt(process.env.HTTP_PORT, 10) || 3001;
 const hostname = '0.0.0.0';
 
-// Ensure upload directories exist
+// ─── Ensure upload directories exist ──────────────────────
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 const chatUploadsDir = path.join(uploadsDir, 'chat');
 if (!fs.existsSync(uploadsDir)) {
@@ -21,22 +21,45 @@ if (!fs.existsSync(chatUploadsDir)) {
     console.log('✅ Created chat uploads directory');
 }
 
-// Read SSL certificates
+// ─── SSL Certificates ─────────────────────────────────────
 let httpsOptions;
-try {
-  httpsOptions = {
-    key: fs.readFileSync(path.join(certsDir, 'key.pem')),
-    cert: fs.readFileSync(path.join(certsDir, 'cert.pem'))
-  };
-  console.log('✅ SSL certificates loaded');
-} catch (err) {
-  console.error('❌ SSL certificates not found in', certsDir);
-  console.error('Generate them with:');
-  console.error('  openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout certs/key.pem -out certs/cert.pem -subj "/CN=localhost"');
-  process.exit(1);
+
+function ensureCerts() {
+    if (!fs.existsSync(certsDir)) {
+        fs.mkdirSync(certsDir, { recursive: true });
+        console.log('[INFO] Created certs directory:', certsDir);
+    }
+
+    const keyPath = path.join(certsDir, 'key.pem');
+    const certPath = path.join(certsDir, 'cert.pem');
+
+    if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
+        console.log('[INFO] SSL certificates not found. Generating...');
+        try {
+            execSync(
+                `openssl req -x509 -nodes -days 365 -newkey rsa:2048 ` +
+                `-keyout "${keyPath}" -out "${certPath}" ` +
+                `-subj "/CN=localhost" ` +
+                `-addext "subjectAltName=DNS:localhost,IP:127.0.0.1"`,
+                { stdio: 'pipe' }
+            );
+            console.log('✅ SSL certificates generated');
+        } catch (err) {
+            console.error('❌ Failed to generate certificates:', err.message);
+            process.exit(1);
+        }
+    }
+
+    return {
+        key: fs.readFileSync(path.join(certsDir, 'key.pem')),
+        cert: fs.readFileSync(path.join(certsDir, 'cert.pem'))
+    };
 }
 
-// Load Next.js request handler
+httpsOptions = ensureCerts();
+console.log('✅ SSL certificates loaded');
+
+// ─── Next.js Setup ──────────────────────────────────────────
 const { parse } = require('url');
 const next = require('next');
 
@@ -61,23 +84,9 @@ app.prepare().then(() => {
       console.error('Failed to start HTTPS server:', err);
       process.exit(1);
     }
-    
-    // Get all network IPs
-    const interfaces = os.networkInterfaces();
-    const ips = [];
-    Object.values(interfaces).forEach((iface) => {
-      iface?.forEach((addr) => {
-        if (addr.family === 'IPv4' && !addr.internal) {
-          ips.push(addr.address);
-        }
-      });
-    });
-    
     console.log(`✅ HTTPS Server running on https://${hostname}:${port}`);
     console.log(`🌐 Local:    https://localhost:${port}`);
-    ips.forEach(ip => {
-      console.log(`🌐 Network:  https://${ip}:${port}`);
-    });
+    console.log(`🌐 Network:  https://<YOUR-IP>:${port}`);
   });
 
   // HTTP Redirect Server
