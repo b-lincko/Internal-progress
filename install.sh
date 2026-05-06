@@ -176,28 +176,28 @@ EOF
     ok ".env created"
 fi
 
-# Load .env for Prisma
-set -a
-source "$APP_DIR/.env"
-set +a
-
 # ─── 8. npm Dependencies ─────────────────────────────────────
 info "Checking npm dependencies..."
 
-# Always do a clean install on server to avoid issues
-warn "Running clean npm install..."
+# CRITICAL: NODE_ENV=production causes npm to skip devDependencies.
+# We MUST install devDependencies for the build to work.
+# Unset it temporarily for npm install.
+warn "Running npm install (including devDependencies)..."
 rm -rf node_modules package-lock.json
+
+# Save current NODE_ENV and unset it for install
+OLD_NODE_ENV="${NODE_ENV:-}"
+unset NODE_ENV
+
 npm install
 
-# CRITICAL: Explicitly install tailwind packages that sometimes fail to install
-info "Ensuring Tailwind CSS packages are installed..."
-npm install tailwindcss@4.2.4 @tailwindcss/postcss@4.2.4 --save-dev --legacy-peer-deps
+# Restore NODE_ENV
+export NODE_ENV="${OLD_NODE_ENV:-production}"
 
-# Verify
+# Verify critical packages are present
 if [[ ! -d "$APP_DIR/node_modules/@tailwindcss/postcss" ]]; then
-    err "@tailwindcss/postcss still missing after install. npm registry issue?"
-    err "Try: npm install @tailwindcss/postcss@4.2.4 --save-dev"
-    exit 1
+    warn "@tailwindcss/postcss still missing after install. Installing explicitly..."
+    npm install @tailwindcss/postcss@4.2.4 tailwindcss@4.2.4 --save-dev --legacy-peer-deps
 fi
 
 if [[ ! -d "$APP_DIR/node_modules/next" ]]; then
