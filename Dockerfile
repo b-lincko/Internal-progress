@@ -1,8 +1,8 @@
-# CMMC Tracker - Production Dockerfile with HTTPS
-# Builds standalone Next.js app with Prisma
+# CMMC Tracker - Production Dockerfile
+# Multi-stage build for Next.js 16 + Prisma + HTTPS
 
 # ==========================================
-# STAGE 1: Build
+# STAGE 1: Dependencies + Build
 # ==========================================
 FROM node:22-alpine AS builder
 
@@ -11,20 +11,20 @@ RUN apk add --no-cache libc6-compat openssl
 
 WORKDIR /app
 
-# Copy dependency files first (better caching)
+# Copy dependency files first (better Docker layer caching)
 COPY package.json package-lock.json ./
+COPY prisma ./prisma/
 
-# Install ALL dependencies (dev needed for build)
+# Install ALL dependencies (including devDependencies for build)
 RUN npm ci
 
-# Copy prisma schema and generate client
-COPY prisma ./prisma/
+# Generate Prisma client
 RUN npx prisma generate
 
-# Copy rest of the source code
+# Copy source code
 COPY . .
 
-# Build Next.js app (outputs to .next/standalone)
+# Build the Next.js app (outputs to .next/standalone)
 RUN npm run build
 
 # ==========================================
@@ -32,46 +32,42 @@ RUN npm run build
 # ==========================================
 FROM node:22-alpine AS runner
 
-# Install runtime dependencies only
+# Install runtime dependencies
 RUN apk add --no-cache libc6-compat openssl
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HTTP_PORT=3001
+
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nodejs
 
 # Copy standalone build output
-COPY --from=builder /app/.next/standalone ./
-
-# Copy static files separately (required for standalone)
-COPY --from=builder /app/.next/static ./.next/static
-
-# Copy public assets
-COPY --from=builder /app/public ./public
-
-# Copy Prisma files for migrations
-COPY --from=builder /app/prisma ./prisma
-
-# Copy node_modules (has prisma binaries)
-COPY --from=builder /app/node_modules ./node_modules
-
-# Copy package.json (for npx commands)
-COPY --from=builder /app/package.json ./package.json
+COPY --from=builder --chown=nodejs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nodejs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nodejs:nodejs /app/public ./public
+COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
 
 # Copy custom HTTPS server
-COPY --from=builder /app/server.js ./server.js
+COPY --chown=nodejs:nodejs server.js ./server.js
 
-# Copy SSL certificates
-COPY --from=builder /app/certs ./certs
+# Copy entrypoint script
+COPY --chown=nodejs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh
 
-# Create uploads directory with correct permissions
+# Create uploads directory with correct ownership
 RUN mkdir -p public/uploads/chat \
-    && chown -R node:node /app
+    && chown -R nodejs:nodejs /app
 
 # Switch to non-root user
-USER node
+USER nodejs
 
-EXPOSE 3000
+EXPOSE 3000 3001
 
 # Run migrations then start with HTTPS
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+CMD ["./docker-entrypoint.sh"]

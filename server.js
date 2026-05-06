@@ -2,10 +2,24 @@ const { createServer } = require('https');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 const certsDir = path.join(__dirname, 'certs');
 const port = parseInt(process.env.PORT, 10) || 3000;
+const httpPort = parseInt(process.env.HTTP_PORT, 10) || 3001;
 const hostname = '0.0.0.0';
+
+// Ensure upload directories exist
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+const chatUploadsDir = path.join(uploadsDir, 'chat');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('✅ Created uploads directory');
+}
+if (!fs.existsSync(chatUploadsDir)) {
+    fs.mkdirSync(chatUploadsDir, { recursive: true });
+    console.log('✅ Created chat uploads directory');
+}
 
 // Read SSL certificates
 let httpsOptions;
@@ -47,18 +61,32 @@ app.prepare().then(() => {
       console.error('Failed to start HTTPS server:', err);
       process.exit(1);
     }
+    
+    // Get all network IPs
+    const interfaces = os.networkInterfaces();
+    const ips = [];
+    Object.values(interfaces).forEach((iface) => {
+      iface?.forEach((addr) => {
+        if (addr.family === 'IPv4' && !addr.internal) {
+          ips.push(addr.address);
+        }
+      });
+    });
+    
     console.log(`✅ HTTPS Server running on https://${hostname}:${port}`);
     console.log(`🌐 Local:    https://localhost:${port}`);
-    console.log(`🌐 Network:  https://192.168.100.68:${port}`);
+    ips.forEach(ip => {
+      console.log(`🌐 Network:  https://${ip}:${port}`);
+    });
   });
 
-  // HTTP Redirect Server (port 3001)
+  // HTTP Redirect Server
   http.createServer((req, res) => {
     const redirectUrl = `https://${req.headers.host?.split(':')[0] || 'localhost'}:${port}${req.url}`;
     res.writeHead(301, { Location: redirectUrl });
     res.end();
-  }).listen(3001, hostname, () => {
-    console.log(`🔄 HTTP Redirect: http://${hostname}:3001 → https://${hostname}:${port}`);
+  }).listen(httpPort, hostname, () => {
+    console.log(`🔄 HTTP Redirect: http://${hostname}:${httpPort} → https://${hostname}:${port}`);
   });
 
 }).catch((err) => {

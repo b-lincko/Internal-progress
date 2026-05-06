@@ -1,0 +1,70 @@
+# CMMC Tracker - Production Docker Compose
+# For domain-based deployment with Nginx reverse proxy
+# Copy to docker-compose.yml on your production server
+
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: cmmc-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cmmc
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: cmmc2
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cmmc -d cmmc2"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - cmmc-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cmmc-tracker:latest
+    container_name: cmmc-app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://cmmc:${DB_PASSWORD}@db:5432/cmmc2
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3000
+      HTTP_PORT: 3001
+      NODE_ENV: production
+    volumes:
+      - uploads:/app/public/uploads
+      - ./certs:/app/certs:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cmmc-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: cmmc-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - uploads:/app/public/uploads:ro
+    depends_on:
+      - app
+    networks:
+      - cmmc-network
+
+volumes:
+  postgres_data:
+  uploads:
+
+networks:
+  cmmc-network:
+    driver: bridge
