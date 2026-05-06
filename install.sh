@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # CMMC Tracker - One Script to Install, Fix, and Launch Everything
-# Checks what exists, skips what's good, fixes what's broken.
+# Run as normal user - it will use sudo internally where needed.
 #
 
 set -euo pipefail
@@ -22,9 +22,6 @@ ok()    { echo -e "${G}[OK]${N}    $1"; }
 warn()  { echo -e "${Y}[WARN]${N}  $1"; }
 err()   { echo -e "${R}[ERROR]${N} $1"; }
 
-SUDO=""
-[[ "$EUID" -ne 0 ]] && command -v sudo &>/dev/null && SUDO="sudo"
-
 # ─── Helpers ─────────────────────────────────────────────────
 has_cmd() { command -v "$1" &>/dev/null; }
 node_major() { node --version 2>/dev/null | sed 's/v//;s/\..*//' || echo 0; }
@@ -32,8 +29,8 @@ node_major() { node --version 2>/dev/null | sed 's/v//;s/\..*//' || echo 0; }
 # ─── 1. Fix Permissions ──────────────────────────────────────
 info "Checking directory permissions..."
 if [[ ! -w "$APP_DIR" ]]; then
-    warn "Directory not writable. Fixing..."
-    $SUDO chown -R "$CURRENT_USER:$CURRENT_USER" "$APP_DIR"
+    warn "Directory not writable. Fixing with sudo..."
+    sudo chown -R "$CURRENT_USER:$CURRENT_USER" "$APP_DIR"
     chmod -R u+rwX "$APP_DIR"
     ok "Permissions fixed"
 else
@@ -49,21 +46,21 @@ NODE_V=$(node_major)
 if [[ "$NODE_V" -ge 18 ]]; then
     ok "Node.js $(node --version) is good"
 else
-    warn "Node.js is old or missing (v$NODE_V). Installing Node 22..."
+    warn "Node.js is old or missing (v$NODE_V). Installing Node 22 with sudo..."
 
     # Remove conflicting old packages first
-    $SUDO apt-get remove -y libnode-dev libnode72 nodejs-doc 2>/dev/null || true
-    $SUDO apt-get purge -y nodejs 2>/dev/null || true
-    $SUDO apt-get autoremove -y 2>/dev/null || true
-    $SUDO dpkg --configure -a 2>/dev/null || true
-    $SUDO apt-get install -f -y 2>/dev/null || true
+    sudo apt-get remove -y libnode-dev libnode72 nodejs-doc 2>/dev/null || true
+    sudo apt-get purge -y nodejs 2>/dev/null || true
+    sudo apt-get autoremove -y 2>/dev/null || true
+    sudo dpkg --configure -a 2>/dev/null || true
+    sudo apt-get install -f -y 2>/dev/null || true
 
     # Install Node 22
-    $SUDO apt-get update -qq
-    $SUDO apt-get install -y -qq curl ca-certificates gnupg
-    $SUDO rm -f /etc/apt/sources.list.d/nodesource.list*
-    curl -fsSL https://deb.nodesource.com/setup_22.x | $SUDO bash -
-    $SUDO apt-get install -y -qq nodejs
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq curl ca-certificates gnupg
+    sudo rm -f /etc/apt/sources.list.d/nodesource.list*
+    curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash -
+    sudo apt-get install -y -qq nodejs
 
     ok "Node.js $(node --version) installed"
 fi
@@ -71,8 +68,8 @@ fi
 # Ensure npm is current
 NPM_V=$(npm --version 2>/dev/null | cut -d. -f1)
 if [[ "$NPM_V" -lt 9 ]]; then
-    warn "npm is old. Updating..."
-    $SUDO npm install -g npm@latest
+    warn "npm is old. Updating with sudo..."
+    sudo npm install -g npm@latest
 fi
 ok "npm $(npm --version) is good"
 
@@ -81,8 +78,8 @@ info "Checking OpenSSL..."
 if has_cmd openssl; then
     ok "OpenSSL found"
 else
-    warn "Installing OpenSSL..."
-    $SUDO apt-get install -y -qq openssl
+    warn "Installing OpenSSL with sudo..."
+    sudo apt-get install -y -qq openssl
 fi
 
 # ─── 4. SSL Certificates ─────────────────────────────────────
@@ -109,13 +106,13 @@ fi
 info "Checking PostgreSQL..."
 
 if ! has_cmd psql; then
-    warn "PostgreSQL not found. Installing..."
-    $SUDO apt-get install -y -qq postgresql postgresql-contrib
+    warn "PostgreSQL not found. Installing with sudo..."
+    sudo apt-get install -y -qq postgresql postgresql-contrib
 fi
 
 if ! pg_isready -q 2>/dev/null; then
-    warn "PostgreSQL not running. Starting..."
-    $SUDO systemctl start postgresql 2>/dev/null || $SUDO service postgresql start 2>/dev/null || true
+    warn "PostgreSQL not running. Starting with sudo..."
+    sudo systemctl start postgresql 2>/dev/null || sudo service postgresql start 2>/dev/null || true
     sleep 2
 fi
 
@@ -127,36 +124,36 @@ DB_USER="cmmc"
 DB_PASS="changeme-strong-password"
 
 # Ensure DB user exists
-USER_EXISTS=$($SUDO -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'" 2>/dev/null || echo "0")
+USER_EXISTS=$(sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'" 2>/dev/null || echo "0")
 if [[ "$USER_EXISTS" != "1" ]]; then
-    $SUDO -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS' CREATEDB;" 2>/dev/null || true
+    sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS' CREATEDB;" 2>/dev/null || true
     ok "Created DB user '$DB_USER'"
 else
-    $SUDO -u postgres psql -c "ALTER USER $DB_USER WITH CREATEDB SUPERUSER;" 2>/dev/null || true
+    sudo -u postgres psql -c "ALTER USER $DB_USER WITH CREATEDB SUPERUSER;" 2>/dev/null || true
     ok "DB user '$DB_USER' permissions updated"
 fi
 
 # ─── 6. Database ─────────────────────────────────────────────
 info "Checking database..."
 
-DB_EXISTS=$($SUDO -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" 2>/dev/null || echo "0")
+DB_EXISTS=$(sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" 2>/dev/null || echo "0")
 
 # Check if database has failed migrations - if so, nuke it
 NEEDS_RESET=0
 if [[ "$DB_EXISTS" == "1" ]]; then
-    MIG_FAILED=$($SUDO -u postgres psql -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL;" 2>/dev/null || echo "0")
+    MIG_FAILED=$(sudo -u postgres psql -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL;" 2>/dev/null || echo "0")
     if [[ "$MIG_FAILED" -gt 0 ]]; then
-        warn "Database has $MIG_FAILED failed migration(s). Resetting..."
+        warn "Database has $MIG_FAILED failed migration(s). Resetting with sudo..."
         NEEDS_RESET=1
     fi
 fi
 
 if [[ "$DB_EXISTS" != "1" || "$NEEDS_RESET" == "1" ]]; then
-    warn "Creating fresh database '$DB_NAME'..."
-    $SUDO -u postgres psql -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
-    $SUDO -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" 2>/dev/null || true
-    $SUDO -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
-    $SUDO -u postgres psql -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;" 2>/dev/null || true
+    warn "Creating fresh database '$DB_NAME' with sudo..."
+    sudo -u postgres psql -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
+    sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" 2>/dev/null || true
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
+    sudo -u postgres psql -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;" 2>/dev/null || true
     ok "Fresh database '$DB_NAME' created"
 else
     ok "Database '$DB_NAME' exists and is clean"
@@ -223,13 +220,13 @@ ok "Migrations applied successfully"
 
 # ─── 11. Seed ────────────────────────────────────────────────
 info "Checking seed data..."
-SEED_COUNT=$($SUDO -u postgres psql -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
+SEED_COUNT=$(sudo -u postgres psql -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
 if [[ "$SEED_COUNT" -gt 0 ]]; then
     ok "Database already has data ($SEED_COUNT users)"
 else
     warn "Seeding database..."
     [[ -f "$APP_DIR/prisma/seed.ts" ]] && npx tsx "$APP_DIR/prisma/seed.ts" 2>/dev/null || true
-    [[ -f "$APP_DIR/seed-data.sql" ]] && $SUDO -u postgres psql -d "$DB_NAME" -f "$APP_DIR/seed-data.sql" 2>/dev/null || true
+    [[ -f "$APP_DIR/seed-data.sql" ]] && sudo -u postgres psql -d "$DB_NAME" -f "$APP_DIR/seed-data.sql" 2>/dev/null || true
     ok "Database seeded"
 fi
 
