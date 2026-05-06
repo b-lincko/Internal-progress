@@ -192,10 +192,15 @@ warn "Running clean npm install..."
 rm -rf node_modules package-lock.json
 npm install
 
-# Verify critical packages are present
+# CRITICAL: Explicitly install tailwind packages that sometimes fail to install
+info "Ensuring Tailwind CSS packages are installed..."
+npm install tailwindcss@4.2.4 @tailwindcss/postcss@4.2.4 --save-dev --legacy-peer-deps
+
+# Verify
 if [[ ! -d "$APP_DIR/node_modules/@tailwindcss/postcss" ]]; then
-    warn "@tailwindcss/postcss missing. Reinstalling..."
-    npm install @tailwindcss/postcss@latest tailwindcss@latest --save-dev
+    err "@tailwindcss/postcss still missing after install. npm registry issue?"
+    err "Try: npm install @tailwindcss/postcss@4.2.4 --save-dev"
+    exit 1
 fi
 
 if [[ ! -d "$APP_DIR/node_modules/next" ]]; then
