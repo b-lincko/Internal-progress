@@ -132,24 +132,37 @@ if [[ "$USER_EXISTS" != "1" ]]; then
     $SUDO -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS' CREATEDB;" 2>/dev/null || true
     ok "Created DB user '$DB_USER'"
 else
-    # Ensure permissions
     $SUDO -u postgres psql -c "ALTER USER $DB_USER WITH CREATEDB SUPERUSER;" 2>/dev/null || true
     ok "DB user '$DB_USER' permissions updated"
 fi
 
-# Ensure database exists
+# ─── 6. Database ─────────────────────────────────────────────
+info "Checking database..."
+
 DB_EXISTS=$($SUDO -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" 2>/dev/null || echo "0")
-if [[ "$DB_EXISTS" != "1" ]]; then
-    $SUDO -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" 2>/dev/null || true
-    ok "Created database '$DB_NAME'"
-else
-    ok "Database '$DB_NAME' exists"
+
+# Check if database has failed migrations - if so, nuke it
+NEEDS_RESET=0
+if [[ "$DB_EXISTS" == "1" ]]; then
+    MIG_FAILED=$($SUDO -u postgres psql -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL;" 2>/dev/null || echo "0")
+    if [[ "$MIG_FAILED" -gt 0 ]]; then
+        warn "Database has $MIG_FAILED failed migration(s). Resetting..."
+        NEEDS_RESET=1
+    fi
 fi
 
-$SUDO -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
-$SUDO -u postgres psql -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;" 2>/dev/null || true
+if [[ "$DB_EXISTS" != "1" || "$NEEDS_RESET" == "1" ]]; then
+    warn "Creating fresh database '$DB_NAME'..."
+    $SUDO -u postgres psql -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
+    $SUDO -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" 2>/dev/null || true
+    $SUDO -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
+    $SUDO -u postgres psql -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;" 2>/dev/null || true
+    ok "Fresh database '$DB_NAME' created"
+else
+    ok "Database '$DB_NAME' exists and is clean"
+fi
 
-# ─── 6. .env File ────────────────────────────────────────────
+# ─── 7. .env File ────────────────────────────────────────────
 info "Checking .env file..."
 if [[ -f "$APP_DIR/.env" ]]; then
     ok ".env exists"
@@ -171,69 +184,39 @@ set -a
 source "$APP_DIR/.env"
 set +a
 
-# ─── 7. npm Dependencies ─────────────────────────────────────
+# ─── 8. npm Dependencies ─────────────────────────────────────
 info "Checking npm dependencies..."
-if [[ -d "$APP_DIR/node_modules" && -f "$APP_DIR/package-lock.json" ]]; then
-    ok "node_modules exists"
-else
-    warn "Installing dependencies..."
-    rm -rf node_modules package-lock.json
-    npm install
-    ok "Dependencies installed"
+
+# Always do a clean install on server to avoid issues
+warn "Running clean npm install..."
+rm -rf node_modules package-lock.json
+npm install
+
+# Verify critical packages are present
+if [[ ! -d "$APP_DIR/node_modules/@tailwindcss/postcss" ]]; then
+    warn "@tailwindcss/postcss missing. Reinstalling..."
+    npm install @tailwindcss/postcss@latest tailwindcss@latest --save-dev
 fi
 
-# ─── 8. Prisma ───────────────────────────────────────────────
+if [[ ! -d "$APP_DIR/node_modules/next" ]]; then
+    err "Next.js not installed. npm install failed."
+    exit 1
+fi
+
+ok "Dependencies installed"
+
+# ─── 9. Prisma ───────────────────────────────────────────────
 info "Checking Prisma..."
-
-# Fix any permission issues in node_modules/.prisma
 rm -rf "$APP_DIR/node_modules/.prisma" 2>/dev/null || true
-
 npx prisma generate
 ok "Prisma client generated"
 
-# ─── 9. Migrations ───────────────────────────────────────────
-info "Checking migrations..."
+# ─── 10. Migrations ───────────────────────────────────────────
+info "Applying migrations..."
+npx prisma migrate deploy
+ok "Migrations applied successfully"
 
-# Check if _prisma_migrations table exists (indicates DB was migrated before)
-MIG_TABLE_EXISTS=$($SUDO -u postgres psql -d "$DB_NAME" -tAc "SELECT 1 FROM information_schema.tables WHERE table_name = '_prisma_migrations';" 2>/dev/null || echo "0")
-
-if [[ "$MIG_TABLE_EXISTS" == "1" ]]; then
-    # Check for failed migrations
-    MIG_FAILED=$($SUDO -u postgres psql -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL;" 2>/dev/null || echo "0")
-    
-    if [[ "$MIG_FAILED" -gt 0 ]]; then
-        warn "Found $MIG_FAILED failed migration(s)."
-        FAILED_NAME=$($SUDO -u postgres psql -d "$DB_NAME" -tAc "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NULL LIMIT 1;" 2>/dev/null || echo "")
-        
-        if [[ -n "$FAILED_NAME" ]]; then
-            warn "Failed migration: $FAILED_NAME"
-            warn "Marking as rolled back..."
-            npx prisma migrate resolve --rolled-back "$FAILED_NAME" 2>/dev/null || {
-                warn "Auto-resolve failed. Cleaning migration table..."
-                $SUDO -u postgres psql -d "$DB_NAME" -c "DELETE FROM _prisma_migrations WHERE finished_at IS NULL;" 2>/dev/null || true
-            }
-        fi
-    fi
-    
-    # Try deploy first (no shadow DB needed)
-    if npx prisma migrate deploy; then
-        ok "Migrations applied (deploy)"
-    else
-        warn "Migrate deploy failed after resolving. Full reset needed..."
-        $SUDO -u postgres psql -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>/dev/null || true
-        $SUDO -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" 2>/dev/null || true
-        $SUDO -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
-        $SUDO -u postgres psql -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;" 2>/dev/null || true
-        npx prisma migrate deploy
-        ok "Database reset and migrations applied"
-    fi
-else
-    # Fresh database, just deploy
-    npx prisma migrate deploy
-    ok "Migrations applied (fresh DB)"
-fi
-
-# ─── 10. Seed ────────────────────────────────────────────────
+# ─── 11. Seed ────────────────────────────────────────────────
 info "Checking seed data..."
 SEED_COUNT=$($SUDO -u postgres psql -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
 if [[ "$SEED_COUNT" -gt 0 ]]; then
@@ -245,7 +228,7 @@ else
     ok "Database seeded"
 fi
 
-# ─── 11. Build ───────────────────────────────────────────────
+# ─── 12. Build ───────────────────────────────────────────────
 info "Checking Next.js build..."
 if [[ -d "$APP_DIR/.next" && -f "$APP_DIR/.next/standalone/server.js" ]]; then
     ok "Build exists"
@@ -256,7 +239,7 @@ else
     ok "Build completed"
 fi
 
-# ─── 12. Start Script ────────────────────────────────────────
+# ─── 13. Start Script ────────────────────────────────────────
 info "Checking start-https.sh..."
 if [[ -f "$APP_DIR/start-https.sh" ]]; then
     ok "start-https.sh exists"
@@ -290,7 +273,7 @@ EOF
     ok "start-https.sh created"
 fi
 
-# ─── 13. Launch ──────────────────────────────────────────────
+# ─── 14. Launch ──────────────────────────────────────────────
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║                   ✅ READY TO LAUNCH!                        ║"
