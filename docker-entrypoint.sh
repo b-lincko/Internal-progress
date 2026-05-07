@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Extract password from DATABASE_URL
+DB_PASS=$(echo "$DATABASE_URL" | sed -n 's/.*:\([^@]*\)@.*/\1/p')
+if [ -z "$DB_PASS" ]; then
+    DB_PASS="changeme-strong-password"
+fi
+
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║  Linkco CMMC Tracker - Starting...                       ║"
@@ -11,7 +17,7 @@ echo ""
 echo "[INFO] Waiting for database..."
 RETRIES=30
 while [ $RETRIES -gt 0 ]; do
-    if PGPASSWORD=changeme-strong-password psql -h db -U cmmc -d cmmc2 -c "SELECT 1;" > /dev/null 2>&1; then
+    if PGPASSWORD="$DB_PASS" psql -h db -U cmmc -d cmmc2 -c "SELECT 1;" > /dev/null 2>&1; then
         echo "[OK] Database ready"
         break
     fi
@@ -32,12 +38,12 @@ echo "[OK] Migrations applied"
 
 # ─── Apply safety-net fixes (for Docker deployments that missed columns) ─
 echo "[INFO] Applying database safety-net fixes..."
-PGPASSWORD=changeme-strong-password psql -h db -U cmmc -d cmmc2 -f prisma/docker-init.sql > /dev/null 2>&1 || echo "[WARN] Some fixes may have already been applied"
+PGPASSWORD="$DB_PASS" psql -h db -U cmmc -d cmmc2 -f prisma/docker-init.sql > /dev/null 2>&1 || echo "[WARN] Some fixes may have already been applied"
 echo "[OK] Safety-net fixes applied"
 
 # ─── Seed chat rooms (required for chat to work) ───────────
 echo "[INFO] Ensuring chat rooms exist..."
-PGPASSWORD=changeme-strong-password psql -h db -U cmmc -d cmmc2 -c "
+PGPASSWORD="$DB_PASS" psql -h db -U cmmc -d cmmc2 -c "
 INSERT INTO chat_rooms (id, name, type, created_at, updated_at)
 VALUES
   ('df66283f-921c-44ec-904a-5dd827971399', 'global', 'Global', NOW(), NOW()),
@@ -52,7 +58,7 @@ echo "[INFO] Ensuring admin user exists..."
 # Generate bcrypt hash for admin123
 ADMIN_HASH=$(node -e "const bcrypt = require('bcryptjs'); console.log(bcrypt.hashSync('admin123', 10))")
 
-PGPASSWORD=changeme-strong-password psql -h db -U cmmc -d cmmc2 -c "
+PGPASSWORD="$DB_PASS" psql -h db -U cmmc -d cmmc2 -c "
 INSERT INTO users (id, name, email, password_hash, role, created_at)
 VALUES (
   gen_random_uuid(),
