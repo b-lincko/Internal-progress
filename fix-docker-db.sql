@@ -1,21 +1,28 @@
 -- Docker DB Fix Script
 -- Run this inside the db container to fix missing tables/columns
 
--- ─── 1. Fix AccessLevel enum ──────────────────────────────
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'AccessLevel') THEN
-    CREATE TYPE "AccessLevel" AS ENUM ('Read', 'Write', 'Admin');
-  END IF;
-END $$;
-
--- ─── 2. Fix Priority enum ─────────────────────────────────
+-- ─── 1. Fix Priority enum ─────────────────────────────────
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'Priority') THEN
     CREATE TYPE "Priority" AS ENUM ('Low', 'Medium', 'High', 'Critical');
   END IF;
 END $$;
 
--- ─── 3. Create document_folders table ─────────────────────
+-- ─── 2. Fix AccessLevel enum ─────────────────────────────
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'AccessLevel') THEN
+    CREATE TYPE "AccessLevel" AS ENUM ('Read', 'Write', 'Admin');
+  END IF;
+END $$;
+
+-- ─── 3. Fix schedule_deadlines priority column ────────────
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'schedule_deadlines' AND column_name = 'priority') THEN
+    ALTER TABLE "schedule_deadlines" ADD COLUMN "priority" "Priority" NOT NULL DEFAULT 'Medium';
+  END IF;
+END $$;
+
+-- ─── 4. Create document_folders table ─────────────────────
 CREATE TABLE IF NOT EXISTS "document_folders" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -38,7 +45,7 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- ─── 4. Create document_access table ──────────────────────
+-- ─── 5. Create document_access table ──────────────────────
 CREATE TABLE IF NOT EXISTS "document_access" (
     "id" TEXT NOT NULL,
     "document_id" TEXT NOT NULL,
@@ -68,7 +75,7 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- ─── 5. Create document_audit_logs table ──────────────────
+-- ─── 6. Create document_audit_logs table ──────────────────
 CREATE TABLE IF NOT EXISTS "document_audit_logs" (
     "id" TEXT NOT NULL,
     "document_id" TEXT NOT NULL,
@@ -91,7 +98,7 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- ─── 6. Fix documents table ───────────────────────────────
+-- ─── 7. Fix documents table columns ──────────────────────────
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'documents' AND column_name = 'folder_id') THEN
     ALTER TABLE "documents" ADD COLUMN "folder_id" TEXT;
@@ -111,32 +118,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- ─── 7. Fix schedule_deadlines.priority column ────────────
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'schedule_deadlines' AND column_name = 'priority') THEN
-    ALTER TABLE "schedule_deadlines" ADD COLUMN "priority" "Priority" NOT NULL DEFAULT 'Medium';
-  END IF;
-END $$;
-
 -- ─── 8. Ensure chat rooms exist ───────────────────────────
 INSERT INTO chat_rooms (id, name, type, created_at, updated_at)
 VALUES
   ('df66283f-921c-44ec-904a-5dd827971399', 'global', 'Global', NOW(), NOW()),
   ('37bfd4ff-b88c-4ac1-bb93-dda73c71bf56', 'private', 'Global', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
-
--- ─── 9. Mark migration as applied in Prisma migrations table ─
-INSERT INTO _prisma_migrations (id, migration_name, checksum, finished_at, migration_state, logs, started_at, applied_steps_count)
-VALUES (
-  gen_random_uuid(),
-  '20260507100000_document_folders_acl',
-  '',
-  NOW(),
-  'MigrationSuccess',
-  '',
-  NOW(),
-  1
-)
-ON CONFLICT (migration_name) DO NOTHING;
 
 SELECT 'Database fix complete!' AS status;

@@ -1,10 +1,17 @@
 -- Complete Database Initialization for Docker
 -- Safety-net: creates tables if migrations somehow failed, then seeds required data
 
--- ─── Ensure DocumentType enum ───────────────────────────────
+-- ─── Ensure Priority enum ─────────────────────────────────
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DocumentType') THEN
-    CREATE TYPE "DocumentType" AS ENUM ('File', 'Text', 'Link');
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'Priority') THEN
+    CREATE TYPE "Priority" AS ENUM ('Low', 'Medium', 'High', 'Critical');
+  END IF;
+END $$;
+
+-- ─── Fix schedule_deadlines priority column ────────────────
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'schedule_deadlines' AND column_name = 'priority') THEN
+    ALTER TABLE "schedule_deadlines" ADD COLUMN "priority" "Priority" NOT NULL DEFAULT 'Medium';
   END IF;
 END $$;
 
@@ -15,10 +22,10 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- ─── Ensure Priority enum (used by schedules + projects) ─
+-- ─── Ensure DocumentType enum ───────────────────────────────
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'Priority') THEN
-    CREATE TYPE "Priority" AS ENUM ('Low', 'Medium', 'High', 'Critical');
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DocumentType') THEN
+    CREATE TYPE "DocumentType" AS ENUM ('File', 'Text', 'Link');
   END IF;
 END $$;
 
@@ -113,23 +120,6 @@ END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'documents' AND column_name = 'file_path' AND is_nullable = 'NO') THEN
     ALTER TABLE "documents" ALTER COLUMN "file_path" DROP NOT NULL;
-  END IF;
-END $$;
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DocumentType') THEN
-    CREATE TYPE "DocumentType" AS ENUM ('File', 'Text', 'Link');
-  END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'documents' AND column_name = 'doc_type') THEN
-    ALTER TABLE "documents" ALTER COLUMN "doc_type" TYPE "DocumentType" USING 'File'::"DocumentType";
-    ALTER TABLE "documents" ALTER COLUMN "doc_type" SET DEFAULT 'File';
-    ALTER TABLE "documents" ALTER COLUMN "doc_type" SET NOT NULL;
-  END IF;
-END $$;
-
--- ─── Fix schedule_deadlines priority column ────────────────
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'schedule_deadlines' AND column_name = 'priority') THEN
-    ALTER TABLE "schedule_deadlines" ADD COLUMN "priority" "Priority" NOT NULL DEFAULT 'Medium';
   END IF;
 END $$;
 

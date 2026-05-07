@@ -30,6 +30,11 @@ echo "[INFO] Running Prisma migrations..."
 npx prisma migrate deploy
 echo "[OK] Migrations applied"
 
+# ─── Apply safety-net fixes (for Docker deployments that missed columns) ─
+echo "[INFO] Applying database safety-net fixes..."
+PGPASSWORD=changeme-strong-password psql -h db -U cmmc -d cmmc2 -f prisma/docker-init.sql > /dev/null 2>&1 || echo "[WARN] Some fixes may have already been applied"
+echo "[OK] Safety-net fixes applied"
+
 # ─── Seed chat rooms (required for chat to work) ───────────
 echo "[INFO] Ensuring chat rooms exist..."
 PGPASSWORD=changeme-strong-password psql -h db -U cmmc -d cmmc2 -c "
