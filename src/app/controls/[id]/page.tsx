@@ -5,8 +5,8 @@ import { ControlDetailClient } from "./ControlDetailClient"
 
 export const dynamic = "force-dynamic"
 
-export default async function ControlDetailPage({ params }: { params: { id: string } }) {
-  const id = params.id
+export default async function ControlDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   
   const control = await prisma.control.findUnique({
     where: { id },
@@ -14,10 +14,10 @@ export default async function ControlDetailPage({ params }: { params: { id: stri
       owner: { select: { id: true, name: true } },
       evidence: {
         include: { user: { select: { name: true } } },
-        orderBy: { created_at: "desc" }
+        orderBy: { uploaded_at: "desc" }
       },
-      poams: { orderBy: { created_at: "desc" } },
-      subcontrols: { orderBy: [{ type: "asc" }, { name: "asc" }] }
+      poams: true,
+      subcontrols: true
     }
   })
 
