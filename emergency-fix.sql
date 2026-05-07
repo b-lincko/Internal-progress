@@ -26,16 +26,19 @@ END $$;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'schedule_deadlines' AND column_name = 'priority') THEN
     ALTER TABLE "schedule_deadlines" ADD COLUMN "priority" "Priority" NOT NULL DEFAULT 'Medium';
-  ELSIF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'schedule_deadlines' AND column_name = 'priority' AND data_type = 'text') THEN
-    -- If priority is text type (from bad init), fix it
-    ALTER TABLE "schedule_deadlines" ALTER COLUMN "priority" TYPE "Priority" USING 'Medium'::"Priority";
   END IF;
 END $$;
+
+-- Fix any NULL created_by values (assign to admin if needed)
+UPDATE "schedule_deadlines" SET "created_by" = COALESCE("created_by", (
+  SELECT "id" FROM "users" WHERE "email" = 'admin@local' LIMIT 1
+)) WHERE "created_by" IS NULL;
 
 -- ─── 2. Fix junction table for many-to-many relation ──────
 -- Drop old junction table if it has wrong name or structure
 DROP TABLE IF EXISTS "_deadlineassignees";
 DROP TABLE IF EXISTS "_ScheduleDeadlineAssignees";
+DROP TABLE IF EXISTS "_DeadlineAssignees";
 
 -- Create correct junction table (Prisma expects exact name and columns)
 CREATE TABLE "_DeadlineAssignees" (
@@ -53,8 +56,29 @@ ALTER TABLE "_DeadlineAssignees" ADD CONSTRAINT "_DeadlineAssignees_B_fkey"
   FOREIGN KEY ("B") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- ─── 3. Fix Prisma migration tracking ─────────────────────
--- Mark the problematic migration as resolved so Prisma can continue
-DELETE FROM _prisma_migrations WHERE migration_name = '20260505080000_major_update';
+-- Recreate _prisma_migrations if it doesn't exist
+CREATE TABLE IF NOT EXISTS "_prisma_migrations" (
+    "id" VARCHAR(36) PRIMARY KEY,
+    "checksum" VARCHAR(64) NOT NULL,
+    "finished_at" TIMESTAMP WITH TIME ZONE,
+    "migration_name" VARCHAR(255) NOT NULL,
+    "logs" TEXT,
+    "rolled_back_at" TIMESTAMP WITH TIME ZONE,
+    "started_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    "applied_steps_count" INTEGER NOT NULL DEFAULT 0
+);
+
+-- Mark all known migrations as successfully applied
+INSERT INTO "_prisma_migrations" ("id", "checksum", "finished_at", "migration_name", "logs", "rolled_back_at", "started_at", "applied_steps_count")
+VALUES
+  ('00000000-0000-0000-0000-000000000001', 'init', now(), '20260503124853_init', '', NULL, now(), 1),
+  ('00000000-0000-0000-0000-000000000002', 'docs', now(), '20260504073613_add_documents_deadlines', '', NULL, now(), 1),
+  ('00000000-0000-0000-0000-000000000003', 'chat', now(), '20260504110214_add_chat_rooms', '', NULL, now(), 1),
+  ('00000000-0000-0000-0000-000000000004', 'sub', now(), '20260504133016_add_subcontrols', '', NULL, now(), 1),
+  ('00000000-0000-0000-0000-000000000005', 'major', now(), '20260505080000_major_update', '', NULL, now(), 1),
+  ('00000000-0000-0000-0000-000000000006', 'folders', now(), '20260507100000_document_folders_acl', '', NULL, now(), 1),
+  ('00000000-0000-0000-0000-000000000007', 'priority', now(), '20260507124500_add_priority_to_schedules', '', NULL, now(), 1)
+ON CONFLICT ("id") DO NOTHING;
 
 -- ─── 4. Ensure other tables from major update exist ─────
 -- (These might be missing if the migration failed partway)
