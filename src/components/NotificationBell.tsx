@@ -9,7 +9,6 @@ export function NotificationBell({ userId }: { userId: string }) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -24,7 +23,7 @@ export function NotificationBell({ userId }: { userId: string }) {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-slate-400 hover:text-slate-200 transition-colors"
+        className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -37,13 +36,13 @@ export function NotificationBell({ userId }: { userId: string }) {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
-          <div className="p-3 border-b border-slate-700 flex items-center justify-between">
-            <span className="font-semibold text-white">Notifications</span>
+        <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 overflow-hidden">
+          <div className="p-3 border-b border-slate-200 flex items-center justify-between">
+            <span className="font-semibold text-slate-900">Notifications</span>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="text-xs text-primary-400 hover:text-primary-300"
+                className="text-xs text-primary-400 hover:text-primary-600"
               >
                 Mark all read
               </button>
@@ -59,8 +58,8 @@ export function NotificationBell({ userId }: { userId: string }) {
                   if (n.link) window.location.href = n.link
                   setIsOpen(false)
                 }}
-                className={`p-3 border-b border-slate-700/50 cursor-pointer hover:bg-slate-700/50 transition-colors ${
-                  !n.is_read ? "bg-slate-700/30 border-l-2 border-l-primary-500" : ""
+                className={`p-3 border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors ${
+                  !n.is_read ? "bg-blue-50 border-l-2 border-l-primary-500" : ""
                 }`}
               >
                 <div className="flex items-start gap-2">
@@ -75,11 +74,11 @@ export function NotificationBell({ userId }: { userId: string }) {
                     {n.type === "Mention" && "👤"}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{n.title}</p>
+                    <p className="text-sm font-medium text-slate-800 truncate">{n.title}</p>
                     {n.body && (
-                      <p className="text-xs text-slate-400 truncate mt-0.5">{n.body}</p>
+                      <p className="text-xs text-slate-500 truncate mt-0.5">{n.body}</p>
                     )}
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-slate-400 mt-1">
                       {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
@@ -91,16 +90,16 @@ export function NotificationBell({ userId }: { userId: string }) {
             ))}
 
             {notifications.length === 0 && (
-              <div className="p-6 text-center text-slate-500 text-sm">
+              <div className="p-6 text-center text-slate-400 text-sm">
                 No notifications yet
               </div>
             )}
           </div>
 
-          <div className="p-2 border-t border-slate-700 text-center">
+          <div className="p-2 border-t border-slate-200 text-center">
             <Link
               href="/notifications"
-              className="text-sm text-primary-400 hover:text-primary-300"
+              className="text-sm text-primary-400 hover:text-primary-600"
               onClick={() => setIsOpen(false)}
             >
               View all notifications →

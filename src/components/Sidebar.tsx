@@ -50,10 +50,10 @@ export function Sidebar() {
   }
 
   return (
-    <div className={`fixed left-0 top-0 h-screen bg-slate-900 text-white transition-all duration-300 z-50 flex flex-col ${collapsed ? "w-16" : "w-64"}`}>
-      <div className="p-4 flex items-center justify-between border-b border-slate-700">
-        {!collapsed && <Link href="/dashboard" className="font-bold text-xl tracking-tight">CMMC</Link>}
-        <button onClick={() => setCollapsed(!collapsed)} className="p-1 hover:bg-slate-700 rounded">
+    <div className={`fixed left-0 top-0 h-screen bg-white text-slate-800 transition-all duration-300 z-50 flex flex-col border-r border-slate-200 ${collapsed ? "w-16" : "w-64"}`}>
+      <div className="p-4 flex items-center justify-between border-b border-slate-200">
+        {!collapsed && <Link href="/dashboard" className="font-bold text-xl tracking-tight text-slate-900">Linkco</Link>}
+        <button onClick={() => setCollapsed(!collapsed)} className="p-1 hover:bg-slate-100 rounded text-slate-500">
           {collapsed ? "→" : "←"}
         </button>
       </div>
@@ -66,7 +66,7 @@ export function Sidebar() {
             className={`flex items-center gap-3 px-4 py-3 mx-2 rounded-lg transition-all ${
               pathname === item.href || pathname?.startsWith(item.href + "/")
                 ? "bg-primary-600 text-white"
-                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             }`}
             title={collapsed ? item.label : undefined}
           >
@@ -79,7 +79,7 @@ export function Sidebar() {
           className={`flex items-center gap-3 px-4 py-3 mx-2 rounded-lg transition-all mt-1 ${
             pathname === "/notifications"
               ? "bg-primary-600 text-white"
-              : "text-slate-400 hover:text-white hover:bg-slate-800"
+              : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
           }`}
           title={collapsed ? "Notifications" : undefined}
         >
@@ -96,18 +96,18 @@ export function Sidebar() {
         </Link>
       </nav>
 
-      <div className="p-4 border-t border-slate-700">
+      <div className="p-4 border-t border-slate-200">
         {!collapsed && user && (
           <div className="mb-3">
             <Link href="/profile" className="block">
-              <div className="text-sm font-medium text-white hover:text-primary-300 transition-colors">{user.name}</div>
+              <div className="text-sm font-medium text-slate-800 hover:text-primary-600 transition-colors">{user.name}</div>
               <div className="text-xs text-slate-400">{user.role}</div>
             </Link>
           </div>
         )}
         <button
           onClick={logout}
-          className={`flex items-center gap-2 text-sm text-slate-400 hover:text-red-400 transition-colors ${collapsed ? "justify-center" : ""}`}
+          className={`flex items-center gap-2 text-sm text-slate-500 hover:text-red-500 transition-colors ${collapsed ? "justify-center" : ""}`}
           title="Logout"
         >
           <span>🚪</span>

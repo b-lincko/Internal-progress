@@ -1,7 +1,7 @@
 import "./globals.css"
 
 export const metadata = {
-  title: "CMMC Tracker",
+  title: "Linkco Cmmc tracker",
   description: "CMMC Level 2 Compliance Tracking",
 }
 

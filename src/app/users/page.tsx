@@ -15,20 +15,30 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
-  const [showForm, setShowForm] = useState(false)
-  const [showPwForm, setShowPwForm] = useState(false)
-  const [pwTarget, setPwTarget] = useState<User | null>(null)
-  const [newPw, setNewPw] = useState("")
-  const [pwSaving, setPwSaving] = useState(false)
-  const [pwError, setPwError] = useState("")
-  const [pwSuccess, setPwSuccess] = useState("")
-  const [saving, setSaving] = useState(false)
 
+  // Add user form
+  const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [role, setRole] = useState("Viewer")
-  const [error, setError] = useState("")
+  const [formError, setFormError] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  // Edit user
+  const [editUser, setEditUser] = useState<User | null>(null)
+  const [editName, setEditName] = useState("")
+  const [editEmail, setEditEmail] = useState("")
+  const [editRole, setEditRole] = useState("Viewer")
+  const [editError, setEditError] = useState("")
+  const [editSaving, setEditSaving] = useState(false)
+
+  // Password reset
+  const [pwTarget, setPwTarget] = useState<User | null>(null)
+  const [newPw, setNewPw] = useState("")
+  const [pwError, setPwError] = useState("")
+  const [pwSuccess, setPwSuccess] = useState("")
+  const [pwSaving, setPwSaving] = useState(false)
 
   useEffect(() => {
     fetch("/api/auth/me").then(r => r.json()).then(d => setCurrentUser(d.user))
@@ -45,7 +55,7 @@ export default function UsersPage() {
   async function createUser(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    setError("")
+    setFormError("")
     const res = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -54,7 +64,7 @@ export default function UsersPage() {
     const data = await res.json()
     setSaving(false)
     if (!res.ok) {
-      setError(data.error || "Failed to create user")
+      setFormError(data.error || "Failed to create user")
       return
     }
     setShowForm(false)
@@ -62,18 +72,43 @@ export default function UsersPage() {
     loadUsers()
   }
 
-  async function deleteUser(id: string) {
-    if (!confirm("Delete this user?")) return
-    await fetch(`/api/users?id=${id}`, { method: "DELETE" })
+  function startEdit(u: User) {
+    setEditUser(u)
+    setEditName(u.name)
+    setEditEmail(u.email)
+    setEditRole(u.role || "Viewer")
+    setEditError("")
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editUser) return
+    setEditSaving(true)
+    setEditError("")
+    const res = await fetch("/api/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editUser.id, name: editName, email: editEmail, role: editRole })
+    })
+    const data = await res.json()
+    setEditSaving(false)
+    if (!res.ok) {
+      setEditError(data.error || "Failed to update user")
+      return
+    }
+    setEditUser(null)
     loadUsers()
   }
 
-  function openPwForm(u: User) {
-    setPwTarget(u)
-    setNewPw("")
-    setPwError("")
-    setPwSuccess("")
-    setShowPwForm(true)
+  async function deleteUser(id: string) {
+    if (!confirm("Delete this user? This cannot be undone.")) return
+    const res = await fetch(`/api/users?id=${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      const data = await res.json()
+      alert(data.error || "Failed to delete")
+      return
+    }
+    loadUsers()
   }
 
   async function resetPassword(e: React.FormEvent) {
@@ -98,10 +133,10 @@ export default function UsersPage() {
     }
     setPwSuccess(`Password reset for ${pwTarget.name}`)
     setNewPw("")
+    setTimeout(() => { setPwTarget(null); setPwSuccess(""); }, 1500)
   }
 
   const isAdmin = currentUser?.role === "Admin"
-  const isManager = currentUser?.role === "Manager" || isAdmin
 
   function roleBadge(role?: string) {
     switch (role) {
@@ -121,34 +156,35 @@ export default function UsersPage() {
           </div>
           {isAdmin && (
             <button
-              onClick={() => setShowForm(!showForm)}
+              onClick={() => { setShowForm(!showForm); setEditUser(null); setPwTarget(null) }}
               className="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
             >
-              <span>+</span> Add User
+              <span>+</span> {showForm ? "Cancel" : "Add User"}
             </button>
           )}
         </div>
 
+        {/* Add User Form */}
         {showForm && (
-          <form onSubmit={createUser} className="bg-white rounded-xl shadow-sm p-6 mb-6 animate-fade-in">
+          <form onSubmit={createUser} className="bg-white rounded-xl shadow-sm p-6 mb-6 animate-fade-in border border-slate-200">
             <h2 className="text-lg font-bold text-slate-900 mb-4">Add New User</h2>
-            {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">{error}</div>}
+            {formError && <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">{formError}</div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">Name</label>
-                <input value={name} onChange={e => setName(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500" required />
+                <input value={name} onChange={e => setName(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">Email</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500" required />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">Password</label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500" required />
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">Role</label>
-                <select value={role} onChange={e => setRole(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <select value={role} onChange={e => setRole(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white">
                   <option value="Viewer">Viewer</option>
                   <option value="Manager">Manager</option>
                   <option value="Admin">Admin</option>
@@ -156,13 +192,44 @@ export default function UsersPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button type="submit" disabled={saving} className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-2.5 rounded-lg font-medium disabled:opacity-500">{saving ? "Creating..." : "Create User"}</button>
+              <button type="submit" disabled={saving} className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-2.5 rounded-lg font-medium disabled:opacity-50">{saving ? "Creating..." : "Create User"}</button>
               <button type="button" onClick={() => setShowForm(false)} className="text-slate-500 hover:text-slate-700 px-4 py-2.5">Cancel</button>
             </div>
           </form>
         )}
 
-        {showPwForm && pwTarget && (
+        {/* Edit User Form */}
+        {editUser && (
+          <form onSubmit={saveEdit} className="bg-white rounded-xl shadow-sm p-6 mb-6 animate-fade-in border border-slate-200">
+            <h2 className="text-lg font-bold text-slate-900 mb-4">Edit User: {editUser.name}</h2>
+            {editError && <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">{editError}</div>}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Name</label>
+                <input value={editName} onChange={e => setEditName(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Email</label>
+                <input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Role</label>
+                <select value={editRole} onChange={e => setEditRole(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white">
+                  <option value="Viewer">Viewer</option>
+                  <option value="Manager">Manager</option>
+                  <option value="Admin">Admin</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button type="submit" disabled={editSaving} className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-2.5 rounded-lg font-medium disabled:opacity-50">{editSaving ? "Saving..." : "Save Changes"}</button>
+              <button type="button" onClick={() => setEditUser(null)} className="text-slate-500 hover:text-slate-700 px-4 py-2.5">Cancel</button>
+            </div>
+          </form>
+        )}
+
+        {/* Password Reset Form */}
+        {pwTarget && (
           <form onSubmit={resetPassword} className="bg-white rounded-xl shadow-sm p-6 mb-6 animate-fade-in border-2 border-amber-200">
             <h2 className="text-lg font-bold text-slate-900 mb-4">Reset Password: {pwTarget.name}</h2>
             {pwError && <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">{pwError}</div>}
@@ -173,27 +240,28 @@ export default function UsersPage() {
                 value={newPw}
                 onChange={e => setNewPw(e.target.value)}
                 placeholder="New password (min 6 chars)"
-                className="flex-1 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="flex-1 border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                 required
               />
               <button type="submit" disabled={pwSaving} className="bg-amber-600 hover:bg-amber-500 text-white px-6 py-2.5 rounded-lg font-medium disabled:opacity-50">{pwSaving ? "Saving..." : "Reset Password"}</button>
-              <button type="button" onClick={() => setShowPwForm(false)} className="text-slate-500 hover:text-slate-700 px-4 py-2.5">Cancel</button>
+              <button type="button" onClick={() => setPwTarget(null)} className="text-slate-500 hover:text-slate-700 px-4 py-2.5">Cancel</button>
             </div>
           </form>
         )}
 
+        {/* Users Table */}
         {loading ? (
           <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full"/></div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-100">
+                <tr className="border-b border-slate-100 bg-slate-50">
                   <th className="text-left p-4 text-sm font-semibold text-slate-500">Name</th>
                   <th className="text-left p-4 text-sm font-semibold text-slate-500">Email</th>
                   {isAdmin && <th className="text-left p-4 text-sm font-semibold text-slate-500">Role</th>}
                   <th className="text-left p-4 text-sm font-semibold text-slate-500">Joined</th>
-                  <th className="text-left p-4 text-sm font-semibold text-slate-500"></th>
+                  <th className="text-left p-4 text-sm font-semibold text-slate-500">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -217,9 +285,13 @@ export default function UsersPage() {
                       <div className="flex items-center gap-2">
                         {isAdmin && u.id !== currentUser?.id && (
                           <>
-                            <button onClick={() => openPwForm(u)} className="text-amber-500 hover:text-amber-700 text-sm font-medium" title="Reset password">🔑</button>
-                            <button onClick={() => deleteUser(u.id)} className="text-red-400 hover:text-red-600 text-sm" title="Delete">🗑️</button>
+                            <button onClick={() => startEdit(u)} className="text-blue-500 hover:text-blue-700 text-sm font-medium px-2 py-1 rounded hover:bg-blue-50" title="Edit user">✏️</button>
+                            <button onClick={() => { setPwTarget(u); setEditUser(null); setShowForm(false) }} className="text-amber-500 hover:text-amber-700 text-sm font-medium px-2 py-1 rounded hover:bg-amber-50" title="Reset password">🔑</button>
+                            <button onClick={() => deleteUser(u.id)} className="text-red-400 hover:text-red-600 text-sm px-2 py-1 rounded hover:bg-red-50" title="Delete user">🗑️</button>
                           </>
+                        )}
+                        {isAdmin && u.id === currentUser?.id && (
+                          <span className="text-xs text-slate-400 italic">You</span>
                         )}
                       </div>
                     </td>
