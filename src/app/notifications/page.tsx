@@ -43,6 +43,13 @@ export default function NotificationsPage() {
     loadNotifications(user.id)
   }
 
+  async function clearAll() {
+    if (!user) return
+    if (!confirm("Clear all notifications? This cannot be undone.")) return
+    await fetch(`/api/notifications?userId=${user.id}`, { method: "DELETE" })
+    loadNotifications(user.id)
+  }
+
   async function markRead(id: string) {
     await fetch("/api/notifications", {
       method: "PATCH",
@@ -62,9 +69,15 @@ export default function NotificationsPage() {
             <h1 className="text-3xl font-bold text-slate-900">Notifications</h1>
             <p className="text-slate-500 mt-1">{unreadCount} unread • {notifications.length} total</p>
           </div>
-          {unreadCount > 0 && (
-            <button onClick={markAllRead} className="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2.5 rounded-lg font-medium transition-colors">Mark All Read</button>
-          )}
+          <div className="flex items-center gap-3">
+            {unreadCount > 0 && (
+              <button onClick={markAllRead} className="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2.5 rounded-lg font-medium transition-colors">Mark All Read</button>
+            )}
+            {notifications.length > 0 && (
+              <button onClick={clearAll} className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-lg font-medium transition-colors border border-red-200">Clear All</button>
+            )}
+            <Link href="/notifications/settings" className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2.5 rounded-lg font-medium transition-colors">⚙️ Settings</Link>
+          </div>
         </div>
 
         {loading ? (
@@ -78,6 +91,10 @@ export default function NotificationsPage() {
                   {n.type === "Alert" && <span className="text-xl">⚠️</span>}
                   {n.type === "System" && <span className="text-xl">ℹ️</span>}
                   {n.type === "Mention" && <span className="text-xl">👤</span>}
+                  {n.type === "Schedule" && <span className="text-xl">📅</span>}
+                  {n.type === "Document" && <span className="text-xl">📄</span>}
+                  {n.type === "Project" && <span className="text-xl">📊</span>}
+                  {n.type === "Call" && <span className="text-xl">📞</span>}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">

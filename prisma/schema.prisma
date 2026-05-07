@@ -27,6 +27,7 @@ model User {
   createdDeadlines  ScheduleDeadline[] @relation("DeadlineCreator")
   roomMemberships   ChatRoomMember[]
   notifications     Notification[]
+  notificationSettings UserNotificationSettings?
   projectMembers    ProjectMember[]
   createdProjects   Project[]          @relation("ProjectCreator")
   uploads           Upload[]
@@ -300,6 +301,27 @@ model Notification {
   deadline_id String?
 
   @@map("notifications")
+}
+
+model UserNotificationSettings {
+  id                    String   @id @default(uuid())
+  user_id               String   @unique
+  email_notifications   Boolean  @default(true)
+  push_notifications    Boolean  @default(true)
+  notify_chat           Boolean  @default(true)
+  notify_schedules      Boolean  @default(true)
+  notify_documents      Boolean  @default(true)
+  notify_projects       Boolean  @default(true)
+  notify_mentions       Boolean  @default(true)
+  notify_alerts         Boolean  @default(true)
+  notify_calls          Boolean  @default(true)
+  notify_system         Boolean  @default(false)
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_notification_settings")
 }
 
 enum NotificationType {

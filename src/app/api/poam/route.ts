@@ -6,6 +6,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const severity = searchParams.get('severity')
     const status = searchParams.get('status')
+    const id = searchParams.get('id')
+
+    if (id) {
+      const poam = await prisma.pOAM.findUnique({
+        where: { id },
+        include: { control: { select: { id: true, control_id: true, title: true } } }
+      })
+      if (!poam) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return NextResponse.json({ poam })
+    }
 
     const where: any = {}
     if (severity) where.severity = severity
@@ -13,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     const poams = await prisma.pOAM.findMany({
       where,
-      include: { control: { select: { control_id: true, title: true } } },
+      include: { control: { select: { id: true, control_id: true, title: true } } },
       orderBy: { due_date: 'asc' }
     })
 
@@ -37,6 +47,38 @@ export async function POST(request: NextRequest) {
       }
     })
     return NextResponse.json({ poam })
+  } catch {
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id, ...data } = body
+    if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+
+    const poam = await prisma.pOAM.update({
+      where: { id },
+      data: {
+        ...data,
+        due_date: data.due_date ? new Date(data.due_date) : undefined
+      }
+    })
+    return NextResponse.json({ poam })
+  } catch {
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+
+    await prisma.pOAM.delete({ where: { id } })
+    return NextResponse.json({ success: true })
   } catch {
     return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }

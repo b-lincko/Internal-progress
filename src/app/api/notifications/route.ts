@@ -77,6 +77,20 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+// DELETE clear all notifications
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
+    if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
+
+    await prisma.notification.deleteMany({ where: { user_id: userId } })
+    return NextResponse.json({ success: true })
+  } catch {
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+  }
+}
+
 // Helper function to create notifications for multiple users
 export async function createNotificationForUsers(
   userIds: string[],
