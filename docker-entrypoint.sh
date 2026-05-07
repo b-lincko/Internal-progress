@@ -56,9 +56,15 @@ fi
 mkdir -p public/uploads/chat
 echo "[OK] Upload directories ready"
 
+# ─── Start the server ──────────────────────────────────────
 echo ""
 echo "[OK] Starting CMMC Tracker on HTTP"
 echo "    http://0.0.0.0:3000"
 echo ""
 
-exec npx next start -p 3000 -H 0.0.0.0
+# Use standalone server if available (Docker), otherwise fall back to next start
+if [ -f "server.js" ]; then
+    exec node server.js
+else
+    exec npx next start -p 3000 -H 0.0.0.0
+fi
