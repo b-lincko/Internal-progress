@@ -31,42 +31,48 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f5f5f0]">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
+    <div className="min-h-screen flex items-center justify-center bg-[#0f0f1a] relative overflow-hidden">
+      {/* Background gradient orbs */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="glass-card rounded-2xl p-8">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-primary-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <span className="text-3xl">🛡️</span>
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-400 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-violet-500/25">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 mb-1">Linkco CMMC Tracker</h1>
-            <p className="text-slate-500 text-sm">Level 2 Compliance Management</p>
+            <h1 className="text-2xl font-bold text-white mb-1">Linkco</h1>
+            <p className="text-gray-400 text-sm">CMMC Level 2 Compliance Management</p>
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-sm animate-fade-in">
+            <div className="bg-red-500/10 border border-red-500/30 text-red-300 p-3 rounded-xl mb-4 text-sm animate-fade-in">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-transparent transition-all"
                 placeholder="Enter your email"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-transparent transition-all"
                 placeholder="Enter your password"
                 required
               />
@@ -74,7 +80,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              className="w-full bg-gradient-to-r from-violet-600 to-cyan-500 hover:opacity-90 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-violet-500/25"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -88,7 +94,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-xs text-slate-400">
+          <div className="mt-6 text-center text-xs text-gray-500">
             Default: admin@local / admin123
           </div>
         </div>
