@@ -14,9 +14,12 @@ coverage
 README.md
 docker-compose*.yml
 Dockerfile*
-*.sh
-!docker-entrypoint.sh
-!deploy-fix.sh
 .vscode
 *.md
 !DEPLOY.md
+!docker-entrypoint.sh
+!fix-complete.sh
+!seed-all-108.sh
+!server-fix.sh
+!deploy-fix.sh
+!build-and-deploy.sh
