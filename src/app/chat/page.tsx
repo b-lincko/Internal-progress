@@ -32,6 +32,7 @@ export default function ChatPage() {
   const [user, setUser] = useState<any>(null)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [activeContact, setActiveContact] = useState<Contact | null>(null)
+  const [activeTab, setActiveTab] = useState<"global" | "private">("global")
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [file, setFile] = useState<File | null>(null)
@@ -50,25 +51,25 @@ export default function ChatPage() {
   function loadContacts(userId: string) {
     fetch("/api/users").then(r => r.json()).then(d => {
       const users = d.users || []
-      const cts: Contact[] = [
-        { id: "global", name: "Global Chat", role: "General", unread: 0, online: true }
-      ]
+      const cts: Contact[] = []
       users.forEach((u: any) => {
         if (u.id !== userId) {
           cts.push({ id: u.id, name: u.name, role: u.role, unread: 0, online: false })
         }
       })
       setContacts(cts)
-      if (!activeContact) setActiveContact(cts[0])
     })
   }
 
   function loadMessages() {
-    if (!user || !activeContact) return
+    if (!user) return
     const params = new URLSearchParams()
-    if (activeContact.id !== "global") {
+    
+    if (activeTab === "private" && activeContact) {
       params.set("partnerId", activeContact.id)
     }
+    // For global, no partnerId = global messages
+    
     fetch(`/api/chat?${params}`)
       .then(r => r.json())
       .then(d => {
@@ -78,18 +79,28 @@ export default function ChatPage() {
   }
 
   useEffect(() => {
-    if (user && activeContact) {
-      loadMessages()
-    }
-  }, [user, activeContact])
+    loadMessages()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, activeContact, activeTab])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
+  // Poll for new messages every 3 seconds
+  useEffect(() => {
+    if (!user) return
+    const interval = setInterval(() => {
+      loadMessages()
+    }, 3000)
+    return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, activeContact, activeTab])
+
   async function sendMessage() {
     if (!newMessage.trim() && !file) return
-    if (!user || !activeContact) return
+    if (!user) return
+    if (activeTab === "private" && !activeContact) return
 
     let fileData = null
     if (file) {
@@ -105,10 +116,9 @@ export default function ChatPage() {
 
     const formData = new FormData()
     formData.append("user_id", user.id)
-    // Use "private" room for 1-on-1, "global" for team chat
-    formData.append("room_id", activeContact.id === "global" ? "global" : "private")
+    formData.append("room_id", activeTab === "global" ? "global" : "private")
     formData.append("message", newMessage)
-    if (activeContact.id !== "global") {
+    if (activeTab === "private" && activeContact) {
       formData.append("recipient_id", activeContact.id)
     }
     if (fileData) {
@@ -127,16 +137,16 @@ export default function ChatPage() {
   }
 
   async function clearChat() {
-    if (!user || !activeContact) return
-    const room = activeContact.id === "global" ? "global" : "private"
-    const msg = activeContact.id === "global" 
-      ? "Clear global chat? This will delete all messages for everyone." 
-      : `Clear chat with ${activeContact.name}? This will delete all messages.`
+    if (!user) return
+    const room = activeTab === "global" ? "global" : "private"
+    const msg = activeTab === "global"
+      ? "Clear global chat? This will delete all messages for everyone."
+      : `Clear chat with ${activeContact?.name}? This will delete all messages.`
     if (!confirm(msg)) return
 
     const params = new URLSearchParams()
     params.set("room", room)
-    if (activeContact.id !== "global") {
+    if (activeTab === "private" && activeContact) {
       params.set("userId", user.id)
       params.set("partnerId", activeContact.id)
     }
@@ -189,76 +199,131 @@ export default function ChatPage() {
 
   const messageGroups = groupMessagesByDate(messages)
 
+  const getChatTitle = () => {
+    if (activeTab === "global") return "Global Chat"
+    if (activeContact) return activeContact.name
+    return "Select a contact"
+  }
+
   return (
-    <AppLayout title="Chat" subtitle={activeContact ? `Chatting with ${activeContact.name}` : "Select a contact"}>
+    <AppLayout title="Chat" subtitle={getChatTitle()}>
       <div className="h-[calc(100vh-80px)] flex -mx-8 -mt-8">
-        {/* Left Sidebar - Contacts */}
+        {/* Left Sidebar */}
         <div className={`${showMobileChat ? "hidden" : "flex"} md:flex w-full md:w-80 bg-[#0f0f1a] border-r border-white/5 flex-col`}>
-          {/* Search */}
-          <div className="p-4 pb-2">
-            <div className="relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search or start new chat"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50"
-              />
-            </div>
+          {/* Tabs */}
+          <div className="flex p-2 gap-1">
+            <button
+              onClick={() => { setActiveTab("global"); setActiveContact(null); setShowMobileChat(true) }}
+              className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === "global"
+                  ? "bg-violet-600 text-white"
+                  : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-base">🌐</span>
+                <span>Global</span>
+              </div>
+            </button>
+            <button
+              onClick={() => { setActiveTab("private"); setShowMobileChat(false) }}
+              className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === "private"
+                  ? "bg-violet-600 text-white"
+                  : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-base">🔒</span>
+                <span>Private</span>
+              </div>
+            </button>
           </div>
+
+          {/* Search (only for private tab) */}
+          {activeTab === "private" && (
+            <div className="px-3 pb-2">
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Contact List */}
           <div className="flex-1 overflow-y-auto px-2">
-            {filteredContacts.map(contact => (
+            {activeTab === "global" ? (
               <button
-                key={contact.id}
-                onClick={() => {
-                  setActiveContact(contact)
-                  setShowMobileChat(true)
-                }}
+                onClick={() => setShowMobileChat(true)}
                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all mb-0.5 ${
-                  activeContact?.id === contact.id
+                  activeTab === "global" && !activeContact
                     ? "bg-white/10 text-white border border-white/10"
                     : "text-gray-400 hover:text-white hover:bg-white/5"
                 }`}
               >
                 <div className="relative">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                    contact.id === "global"
-                      ? "bg-gradient-to-br from-violet-500 to-cyan-400"
-                      : "bg-gradient-to-br from-emerald-500 to-teal-400"
-                  }`}>
-                    {contact.id === "global" ? "🌐" : contact.name?.charAt(0).toUpperCase()}
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold bg-gradient-to-br from-violet-500 to-cyan-400">
+                    🌐
                   </div>
-                  {contact.online && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-[#0f0f1a]"></span>
-                  )}
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-[#0f0f1a]"></span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium truncate">{contact.name}</span>
-                    {contact.lastTime && <span className="text-xs text-gray-500">{contact.lastTime}</span>}
+                    <span className="text-sm font-medium truncate">Global Chat</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500 truncate">{contact.role}</span>
-                    {contact.unread > 0 && (
-                      <span className="bg-violet-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                        {contact.unread}
-                      </span>
-                    )}
-                  </div>
+                  <div className="text-xs text-gray-500">Team conversations</div>
                 </div>
               </button>
-            ))}
+            ) : (
+              filteredContacts.map(contact => (
+                <button
+                  key={contact.id}
+                  onClick={() => {
+                    setActiveContact(contact)
+                    setShowMobileChat(true)
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all mb-0.5 ${
+                    activeContact?.id === contact.id
+                      ? "bg-white/10 text-white border border-white/10"
+                      : "text-gray-400 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold bg-gradient-to-br from-emerald-500 to-teal-400">
+                      {contact.name?.charAt(0).toUpperCase()}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium truncate">{contact.name}</span>
+                      {contact.unread > 0 && (
+                        <span className="bg-violet-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                          {contact.unread}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500">{contact.role}</div>
+                  </div>
+                </button>
+              ))
+            )}
+            {activeTab === "private" && filteredContacts.length === 0 && (
+              <div className="text-center py-8 text-gray-500 text-sm">No users found</div>
+            )}
           </div>
         </div>
 
         {/* Main Chat Area */}
         <div className={`${showMobileChat ? "flex" : "hidden"} md:flex flex-1 flex-col bg-[#0f0f1a]`}>
-          {activeContact ? (
+          {(activeTab === "global" || activeContact) ? (
             <>
               {/* Chat Header */}
               <div className="px-4 py-3 border-b border-white/5 flex items-center gap-3">
@@ -272,32 +337,24 @@ export default function ChatPage() {
                 </button>
                 <div className="relative">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                    activeContact.id === "global"
+                    activeTab === "global"
                       ? "bg-gradient-to-br from-violet-500 to-cyan-400"
                       : "bg-gradient-to-br from-emerald-500 to-teal-400"
                   }`}>
-                    {activeContact.id === "global" ? "🌐" : activeContact.name?.charAt(0).toUpperCase()}
+                    {activeTab === "global" ? "🌐" : activeContact?.name?.charAt(0).toUpperCase()}
                   </div>
-                  {activeContact.online && (
+                  {activeTab === "global" && (
                     <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#0f0f1a]"></span>
                   )}
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-white font-semibold text-sm">{activeContact.name}</h2>
-                  <p className="text-xs text-gray-500">{activeContact.online ? "online" : activeContact.role}</p>
+                  <h2 className="text-white font-semibold text-sm">{getChatTitle()}</h2>
+                  <p className="text-xs text-gray-500">
+                    {activeTab === "global" ? "Everyone can see this" : "Private conversation"}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="p-2 text-gray-400 hover:text-white transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                  </button>
-                  <button className="p-2 text-gray-400 hover:text-white transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                  {(user?.role === "Admin" || activeContact.id !== "global") && (
+                  {(user?.role === "Admin" || activeTab === "private") && (
                     <button onClick={clearChat} className="p-2 text-gray-400 hover:text-red-400 transition-colors" title="Clear chat">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -398,7 +455,7 @@ export default function ChatPage() {
                       value={newMessage}
                       onChange={e => setNewMessage(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Type a message..."
+                      placeholder={activeTab === "global" ? "Message everyone..." : `Message ${activeContact?.name}...`}
                       className="w-full bg-transparent text-sm text-white placeholder-gray-500 focus:outline-none"
                     />
                   </div>
@@ -419,7 +476,12 @@ export default function ChatPage() {
               </div>
             </>
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-500">Select a contact to start chatting</div>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="text-4xl mb-3">👥</div>
+                <div className="text-gray-500 text-sm">Select a user from the Private tab to start chatting</div>
+              </div>
+            </div>
           )}
         </div>
       </div>
