@@ -1,192 +1,182 @@
-# CMMC Tracker - Deployment Guide
+# CMMC Tracker v2.1 - Deployment Guide
 
-## Option 1: Docker Compose (Recommended) ✅
+## Quick Deploy (Docker)
 
-### Requirements
-- Docker + Docker Compose
-
-### Steps
-
-1. **Copy project to server:**
+### 1. Download the Docker Image
 ```bash
-# On your machine - zip the project
-cd /home/kali/.openclaw/workspace/cmmc-tracker
-zip -r cmmc-tracker.zip . -x "node_modules/*" ".next/*" "*.log"
-
-# Transfer to server
-scp cmmc-tracker.zip user@server:/opt/
-
-# On server
-unzip cmmc-tracker.zip -d /opt/cmmc-tracker
-cd /opt/cmmc-tracker
+wget http://192.168.100.68:8080/cmmc-tracker-v2.1.tar.gz
 ```
 
-2. **Create environment file:**
+### 2. Load the Image
 ```bash
-cat > .env << 'EOF'
-DB_PASSWORD=your-secure-password
-JWT_SECRET=your-jwt-secret-key-here
+docker load < cmmc-tracker-v2.1.tar.gz
+```
+
+### 3. Create docker-compose.yml
+```bash
+cat > docker-compose.yml << 'EOF'
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: cmmc-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cmmc
+      POSTGRES_PASSWORD: changeme-strong-password
+      POSTGRES_DB: cmmc2
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cmmc -d cmmc2"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - cmmc-network
+
+  app:
+    image: cmmc-tracker:v2.1
+    container_name: cmmc-app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://cmmc:changeme-strong-password@db:5432/cmmc2
+      JWT_SECRET: changeme-jwt-secret-key-min-32-chars
+      PORT: 3000
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads:/app/public/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cmmc-network
+
+volumes:
+  postgres_data:
+  uploads:
+
+networks:
+  cmmc-network:
+    driver: bridge
 EOF
 ```
 
-3. **Build and run:**
+### 4. Start the Application
 ```bash
-docker-compose up --build -d
+docker compose up -d
 ```
 
-4. **Initialize database (first time only):**
-```bash
-# Wait for DB to be ready (30 seconds)
-sleep 30
-
-# Run migrations
-docker-compose exec app npx prisma migrate deploy
-
-# Seed data (creates admin user + 108 controls)
-docker-compose exec app npx prisma db seed
-```
-
-5. **Access:**
-- App: http://server-ip:3000
+### 5. Access the App
+- Open: `http://your-server-ip:3000`
 - Login: `admin@local` / `admin123`
 
-### Useful Commands
+---
+
+## Manual Deploy (Git Clone)
+
+### 1. Clone from GitHub
 ```bash
-# View logs
-docker-compose logs -f app
+git clone https://github.com/b-lincko/Internal-progress.git
+cd Internal-progress
+```
 
-# Restart
-docker-compose restart app
+### 2. Install Dependencies
+```bash
+npm install
+```
 
-# Stop everything
-docker-compose down
+### 3. Setup Database
+```bash
+# Edit .env with your DB credentials
+npx prisma migrate deploy
+npx prisma db seed
+```
 
-# Backup database
-docker-compose exec db pg_dump -U cmmc cmmc2 > backup.sql
-
-# Restore database
-docker-compose exec -T db psql -U cmmc cmmc2 < backup.sql
+### 4. Build & Start
+```bash
+npm run build
+npm start
 ```
 
 ---
 
-## Option 2: Manual Deployment (Not Recommended)
+## Post-Deploy: Seed Database (if empty)
 
-### Requirements
-- Node.js 22+
-- PostgreSQL 16+
-- Linux server
-
-### Steps
-
-1. **Install PostgreSQL:**
+If the app starts but login fails (no users):
 ```bash
-sudo apt update
-sudo apt install postgresql-16
-sudo service postgresql start
-sudo -u postgres psql -c "CREATE USER cmmc WITH PASSWORD 'your-password';"
-sudo -u postgres psql -c "CREATE DATABASE cmmc2 OWNER cmmc;"
-```
+# Run inside the app container
+docker exec -it cmmc-app sh
 
-2. **Install Node.js:**
-```bash
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs
-```
-
-3. **Deploy app:**
-```bash
-cd /opt/cmmc-tracker
-npm ci
-npx prisma generate
-npm run build
-cp -r .next/static .next/standalone/.next/
-cp -r public .next/standalone/
-npm run start
+# Or seed via SQL
+docker exec -i cmmc-db psql -U cmmc -d cmmc2 << 'SQL'
+INSERT INTO users (id, name, email, password_hash, role, created_at)
+VALUES (
+  gen_random_uuid(),
+  'Admin User',
+  'admin@local',
+  '$2b$10$EF2DJNSnZvgHGCb78pDtG.Cg/5rW3nGp9Wd9dStyVCXMKPrwwGD1u',
+  'Admin',
+  NOW()
+) ON CONFLICT (email) DO UPDATE SET
+  password_hash = EXCLUDED.password_hash,
+  name = EXCLUDED.name,
+  role = EXCLUDED.role;
+SQL
 ```
 
 ---
 
 ## Troubleshooting
 
-### Port 3000 already in use
+### Port 3000 in use?
 ```bash
-# Find process
-sudo lsof -ti:3000 | xargs sudo kill -9
-
-# Or change port in docker-compose.yml
-ports:
-  - "8080:3000"
+sudo lsof -i :3000
+sudo kill <PID>
 ```
 
-### Database connection failed
+### Database connection failed?
 ```bash
-# Check DB is running
-docker-compose ps db
+# Check DB container
+docker logs cmmc-db
 
-# Check logs
-docker-compose logs db
-
-# Reset DB (WARNING: deletes all data!)
-docker-compose down -v
-docker-compose up -d
+# Check network
+docker network inspect server_cmmc-network
 ```
 
-### Static files not loading (404)
+### Migrations failing?
 ```bash
-# Rebuild with static files
-docker-compose exec app sh -c "cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/"
-docker-compose restart app
+# Reset and re-apply
+npx prisma migrate reset --force
+npx prisma migrate deploy
 ```
 
 ---
 
-## 🚀 Quick Deploy Script
+## What's New in v2.1
 
-Save this as `deploy.sh` on your server:
+- **Chat Privacy Fixed** - Private messages no longer show in Global chat
+- **Database Consistency** - Added missing migration for `created_by` column
+- **No Default Creds** - Login page no longer shows default credentials
+- **Docker Entrypoint** - Uses Node.js instead of `psql` for DB health checks
 
-```bash
-#!/bin/bash
-set -e
+---
 
-APP_DIR="/opt/cmmc-tracker"
-ZIP_FILE="$1"
+## Features
+- 108 CMMC Level 2 Controls
+- Dark Theme
+- Team Chat (Global + Private)
+- POA&M Tracker
+- Asset Inventory
+- Document Management
+- Project Tracking
+- Notifications
+- Admin Panel
 
-if [ -z "$ZIP_FILE" ]; then
-    echo "Usage: ./deploy.sh cmmc-tracker.zip"
-    exit 1
-fi
-
-# Stop existing
-cd $APP_DIR 2>/dev/null && docker-compose down || true
-
-# Extract new code
-rm -rf $APP_DIR
-unzip -q "$ZIP_FILE" -d $APP_DIR
-cd $APP_DIR
-
-# Create env if not exists
-[ ! -f .env ] && echo -e "DB_PASSWORD=$(openssl rand -base64 16)\nJWT_SECRET=$(openssl rand -base64 32)" > .env
-
-# Build and start
-docker-compose up --build -d
-
-# Wait for DB
-sleep 30
-
-# Run migrations
-docker-compose exec app npx prisma migrate deploy
-
-# Seed if first time
-if [ "$2" == "--seed" ]; then
-    docker-compose exec app npx prisma db seed
-fi
-
-echo "✅ Deployed! Access: http://$(hostname -I | awk '{print $1}'):3000"
-```
-
-Usage:
-```bash
-chmod +x deploy.sh
-./deploy.sh cmmc-tracker.zip --seed
-```
+## Default Admin
+- Email: `admin@local`
+- Password: `admin123`
+- **Change this immediately after first login!**

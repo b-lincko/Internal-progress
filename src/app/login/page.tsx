@@ -95,7 +95,6 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 text-center text-xs text-gray-500">
-            Default: admin@local / admin123
           </div>
         </div>
       </div>

@@ -56,14 +56,10 @@ export default function NotificationSettingsPage() {
 
   if (loading) {
     return (
-      <AppLayout>
+      <AppLayout title="Notification Settings" subtitle="Choose what you want to be notified about">
         <div className="max-w-2xl">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900">Notification Settings</h1>
-            <p className="text-slate-500 mt-1">Choose what you want to be notified about</p>
-          </div>
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full" />
+            <div className="animate-spin h-8 w-8 border-4 border-violet-600 border-t-transparent rounded-full" />
           </div>
         </div>
       </AppLayout>
@@ -71,48 +67,44 @@ export default function NotificationSettingsPage() {
   }
 
   return (
-    <AppLayout>
+    <AppLayout title="Notification Settings" subtitle="Choose what you want to be notified about">
       <div className="max-w-2xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Notification Settings</h1>
-          <p className="text-slate-500 mt-1">Choose what you want to be notified about</p>
-        </div>
 
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
-          <div className="p-4 bg-slate-50 border-b border-slate-100">
-            <h2 className="font-semibold text-slate-700">Notification Channels</h2>
+        <div className="glass-card rounded-xl overflow-hidden mb-6 border border-white/10">
+          <div className="p-4 bg-white/5 border-b border-white/5">
+            <h2 className="font-semibold text-gray-300">Notification Channels</h2>
           </div>
           {options.slice(0, 2).map(opt => (
-            <div key={opt.key} className="p-4 border-b border-slate-100 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+            <div key={opt.key} className="p-4 border-b border-white/5 flex items-center justify-between hover:bg-white/5 transition-colors">
               <div>
-                <div className="font-medium text-slate-800">{opt.label}</div>
-                <div className="text-sm text-slate-400">{opt.desc}</div>
+                <div className="font-medium text-gray-200">{opt.label}</div>
+                <div className="text-sm text-gray-500">{opt.desc}</div>
               </div>
               <button
                 onClick={() => toggle(opt.key)}
-                className={`w-12 h-6 rounded-full transition-colors relative ${settings?.[opt.key] ? "bg-primary-600" : "bg-slate-200"}`}
+                className={`w-12 h-6 rounded-full transition-colors relative ${settings?.[opt.key] ? "bg-violet-600" : "bg-white/10"}`}
               >
-                <div className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${settings?.[opt.key] ? "translate-x-6" : "translate-x-0.5"}`} />
+                <div className={`w-5 h-5 rounded-full glass-card  absolute top-0.5 transition-transform ${settings?.[opt.key] ? "translate-x-6" : "translate-x-0.5"}`} />
               </button>
             </div>
           ))}
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
-          <div className="p-4 bg-slate-50 border-b border-slate-100">
-            <h2 className="font-semibold text-slate-700">Notification Types</h2>
+        <div className="glass-card rounded-xl overflow-hidden mb-6 border border-white/10">
+          <div className="p-4 bg-white/5 border-b border-white/5">
+            <h2 className="font-semibold text-gray-300">Notification Types</h2>
           </div>
           {options.slice(2).map(opt => (
-            <div key={opt.key} className="p-4 border-b border-slate-100 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+            <div key={opt.key} className="p-4 border-b border-white/5 flex items-center justify-between hover:bg-white/5 transition-colors">
               <div>
-                <div className="font-medium text-slate-800">{opt.label}</div>
-                <div className="text-sm text-slate-400">{opt.desc}</div>
+                <div className="font-medium text-gray-200">{opt.label}</div>
+                <div className="text-sm text-gray-500">{opt.desc}</div>
               </div>
               <button
                 onClick={() => toggle(opt.key)}
-                className={`w-12 h-6 rounded-full transition-colors relative ${settings?.[opt.key] ? "bg-primary-600" : "bg-slate-200"}`}
+                className={`w-12 h-6 rounded-full transition-colors relative ${settings?.[opt.key] ? "bg-violet-600" : "bg-white/10"}`}
               >
-                <div className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${settings?.[opt.key] ? "translate-x-6" : "translate-x-0.5"}`} />
+                <div className={`w-5 h-5 rounded-full glass-card  absolute top-0.5 transition-transform ${settings?.[opt.key] ? "translate-x-6" : "translate-x-0.5"}`} />
               </button>
             </div>
           ))}
@@ -122,7 +114,7 @@ export default function NotificationSettingsPage() {
           <button
             onClick={saveSettings}
             disabled={saving}
-            className="px-6 py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-500 transition-colors disabled:opacity-50"
+            className="px-6 py-2.5 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-500 transition-colors disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save Settings"}
           </button>

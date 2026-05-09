@@ -3,10 +3,10 @@ import { prisma } from '@/lib/prisma'
 
 const domains = [
   { name: 'Access Control (AC)', short: 'AC' },
-  { name: 'Awareness \u0026 Training (AT)', short: 'AT' },
-  { name: 'Audit \u0026 Accountability (AU)', short: 'AU' },
+  { name: 'Awareness & Training (AT)', short: 'AT' },
+  { name: 'Audit & Accountability (AU)', short: 'AU' },
   { name: 'Configuration Management (CM)', short: 'CM' },
-  { name: 'Identification \u0026 Authentication (IA)', short: 'IA' },
+  { name: 'Identification & Authentication (IA)', short: 'IA' },
   { name: 'Incident Response (IR)', short: 'IR' },
   { name: 'Maintenance (MA)', short: 'MA' },
   { name: 'Media Protection (MP)', short: 'MP' },
@@ -14,8 +14,8 @@ const domains = [
   { name: 'Physical Protection (PE)', short: 'PE' },
   { name: 'Risk Assessment (RA)', short: 'RA' },
   { name: 'Security Assessment (CA)', short: 'CA' },
-  { name: 'System \u0026 Communications Protection (SC)', short: 'SC' },
-  { name: 'System \u0026 Information Integrity (SI)', short: 'SI' }
+  { name: 'System & Communications Protection (SC)', short: 'SC' },
+  { name: 'System & Information Integrity (SI)', short: 'SI' }
 ]
 
 const controlTemplates: Record<string, {id: string, title: string, desc: string}[]> = {
@@ -158,25 +158,41 @@ const controlTemplates: Record<string, {id: string, title: string, desc: string}
 }
 
 async function main() {
+  // ─── Seed Admin User (idempotent) ──────────────────────────────
   const hash = await bcrypt.hash('admin123', 10)
   
-  await prisma.user.create({
-    data: {
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@local' },
+    update: { password_hash: hash, name: 'Admin User', role: 'Admin' },
+    create: {
       name: 'Admin User',
       email: 'admin@local',
       password_hash: hash,
       role: 'Admin'
     }
   })
+  console.log('Admin user ready:', admin.email, '/ admin123')
 
-  console.log('Created admin user: admin@local / admin123')
+  // ─── Seed Chat Rooms ───────────────────────────────────────────
+  const globalRoom = await prisma.chatRoom.findFirst({ where: { name: 'global' } })
+  if (!globalRoom) {
+    await prisma.chatRoom.create({ data: { name: 'global', type: 'Global' } })
+  }
+  const privateRoom = await prisma.chatRoom.findFirst({ where: { name: 'private' } })
+  if (!privateRoom) {
+    await prisma.chatRoom.create({ data: { name: 'private', type: 'Private' } })
+  }
+  console.log('Chat rooms ready: global, private')
 
+  // ─── Seed CMMC Controls ──────────────────────────────────────
   let count = 0
   for (const domain of domains) {
     const templates = controlTemplates[domain.short] || []
     for (const t of templates) {
-      await prisma.control.create({
-        data: {
+      await prisma.control.upsert({
+        where: { control_id: t.id },
+        update: {},
+        create: {
           control_id: t.id,
           domain: domain.name,
           title: t.title,
@@ -187,7 +203,6 @@ async function main() {
       count++
     }
   }
-
   console.log(`Seeded ${count} controls across ${domains.length} domains`)
 }
 

@@ -155,10 +155,10 @@ export default function DeadlinesPage() {
 
   function statusBadge(status: string) {
     switch (status) {
-      case "Completed": return "bg-emerald-100 text-emerald-700 border-emerald-200"
-      case "In_Progress": return "bg-blue-100 text-blue-700 border-blue-200"
-      case "Overdue": return "bg-red-100 text-red-700 border-red-200"
-      default: return "bg-slate-100 text-slate-600 border-slate-200"
+      case "Completed": return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+      case "In_Progress": return "bg-blue-500/10 text-blue-400 border-blue-500/20"
+      case "Overdue": return "bg-red-500/10 text-red-400 border-red-500/20"
+      default: return "bg-white/10 text-gray-400 border-white/10"
     }
   }
 
@@ -174,11 +174,11 @@ export default function DeadlinesPage() {
       <div className="max-w-5xl">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Schedules & Deadlines</h1>
-            <p className="text-slate-500 mt-1">{deadlines.length} items</p>
+            <h1 className="text-3xl font-bold text-white">Schedules & Deadlines</h1>
+            <p className="text-gray-500 mt-1">{deadlines.length} items</p>
           </div>
           <div className="flex gap-3">
-            <select value={filter} onChange={e => setFilter(e.target.value)} className="border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm">
+            <select value={filter} onChange={e => setFilter(e.target.value)} className="border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm bg-white/5 text-white">
               <option value="">All Statuses</option>
               <option value="Scheduled">Scheduled</option>
               <option value="In_Progress">In Progress</option>
@@ -186,7 +186,7 @@ export default function DeadlinesPage() {
               <option value="Overdue">Overdue</option>
             </select>
             {isManager && (
-              <button onClick={() => { setShowForm(!showForm); if (editId) { resetForm(); setEditId(null); } }} className="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2">
+              <button onClick={() => { setShowForm(!showForm); if (editId) { resetForm(); setEditId(null); } }} className="bg-violet-600 hover:bg-violet-500 text-white px-4 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2">
                 <span>+</span> {showForm ? "Cancel" : "Add Deadline"}
               </button>
             )}
@@ -194,31 +194,31 @@ export default function DeadlinesPage() {
         </div>
 
         {showForm && (
-          <form onSubmit={editId ? updateDeadline : createDeadline} className="bg-white rounded-xl shadow-sm p-6 mb-6 animate-fade-in">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">{editId ? "Edit Schedule" : "Add Schedule / Deadline"}</h2>
+          <form onSubmit={editId ? updateDeadline : createDeadline} className="glass-card rounded-xl p-6 mb-6 animate-fade-in border border-white/10">
+            <h2 className="text-lg font-bold text-white mb-4">{editId ? "Edit Schedule" : "Add Schedule / Deadline"}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Title</label>
-                <input value={title} onChange={e => setTitle(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500" required />
+                <label className="block text-sm font-medium text-gray-400 mb-1">Title</label>
+                <input value={title} onChange={e => setTitle(e.target.value)} className="w-full border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white/5 text-white" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Due Date</label>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500" required />
+                <label className="block text-sm font-medium text-gray-400 mb-1">Due Date</label>
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white/5 text-white" required />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-600 mb-1">Description</label>
-                <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 h-20 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" />
+                <label className="block text-sm font-medium text-gray-400 mb-1">Description</label>
+                <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full border border-white/10 rounded-lg px-4 py-2.5 h-20 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none bg-white/5 text-white" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Linked Control (optional)</label>
-                <select value={controlId} onChange={e => setControlId(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <label className="block text-sm font-medium text-gray-400 mb-1">Linked Control (optional)</label>
+                <select value={controlId} onChange={e => setControlId(e.target.value)} className="w-full border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white/5 text-white">
                   <option value="">None</option>
                   {controls.map((c: any) => <option key={c.id} value={c.id}>{c.control_id} — {c.title}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">Priority</label>
-                <select value={priority} onChange={e => setPriority(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <label className="block text-sm font-medium text-gray-400 mb-1">Priority</label>
+                <select value={priority} onChange={e => setPriority(e.target.value)} className="w-full border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white/5 text-white">
                   <option value="Low">Low</option>
                   <option value="Medium">Medium</option>
                   <option value="High">High</option>
@@ -226,10 +226,10 @@ export default function DeadlinesPage() {
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-600 mb-2">Assign To (multiple allowed)</label>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Assign To (multiple allowed)</label>
                 <div className="flex flex-wrap gap-2">
                   {users.map(u => (
-                    <label key={u.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm border transition-colors ${assigneeIds.includes(u.id) ? "bg-primary-50 border-primary-300 text-primary-700" : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"}`}>
+                    <label key={u.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm border transition-colors ${assigneeIds.includes(u.id) ? "bg-violet-500/10 border-violet-500/30 text-violet-400" : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10"}`}>
                       <input
                         type="checkbox"
                         checked={assigneeIds.includes(u.id)}
@@ -237,7 +237,7 @@ export default function DeadlinesPage() {
                           if (e.target.checked) setAssigneeIds([...assigneeIds, u.id])
                           else setAssigneeIds(assigneeIds.filter(id => id !== u.id))
                         }}
-                        className="w-4 h-4 accent-primary-600"
+                        className="w-4 h-4 accent-violet-600"
                       />
                       <span>{u.name}</span>
                     </label>
@@ -246,14 +246,14 @@ export default function DeadlinesPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button type="submit" disabled={saving} className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-2.5 rounded-lg font-medium disabled:opacity-500">{saving ? "Saving..." : (editId ? "Save Changes" : "Add Deadline")}</button>
-              <button type="button" onClick={() => { setShowForm(false); setEditId(null); resetForm(); }} className="text-slate-500 hover:text-slate-700 px-4 py-2.5">Cancel</button>
+              <button type="submit" disabled={saving} className="bg-violet-600 hover:bg-violet-500 text-white px-6 py-2.5 rounded-lg font-medium disabled:opacity-50">{saving ? "Saving..." : (editId ? "Save Changes" : "Add Deadline")}</button>
+              <button type="button" onClick={() => { setShowForm(false); setEditId(null); resetForm(); }} className="text-gray-500 hover:text-gray-300 px-4 py-2.5">Cancel</button>
             </div>
           </form>
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full"/></div>
+          <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-violet-600 border-t-transparent rounded-full"/></div>
         ) : (
           <div className="space-y-3">
             {sorted.map((d) => {
@@ -261,17 +261,17 @@ export default function DeadlinesPage() {
               const isAssigned = d.assignees.some(a => a.id === currentUser?.id)
               const canEditDeadline = isAdmin || d.creator.id === currentUser?.id
               return (
-                <div key={d.id} className={`bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center gap-4 ${isOverdue ? "border-l-4 border-l-red-500" : "border-l-4 border-l-primary-500"}`}>
+                <div key={d.id} className={`glass-card rounded-xl p-5 flex flex-col md:flex-row md:items-center gap-4 border border-white/10 ${isOverdue ? "border-l-4 border-l-red-500" : "border-l-4 border-l-violet-500"}`}>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-bold text-slate-900">{d.title}</span>
+                      <span className="font-bold text-white">{d.title}</span>
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusBadge(d.status)}`}>{d.status.replace("_", " ")}</span>
-                      {isAssigned && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">Assigned to You</span>}
+                      {isAssigned && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">Assigned to You</span>}
                     </div>
-                    {d.description && <p className="text-sm text-slate-600 mb-1">{d.description}</p>}
-                    <div className="text-xs text-slate-500 flex flex-wrap gap-3 items-center">
+                    {d.description && <p className="text-sm text-gray-400 mb-1">{d.description}</p>}
+                    <div className="text-xs text-gray-500 flex flex-wrap gap-3 items-center">
                       <span>📅 Due: {new Date(d.due_date).toLocaleDateString()}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${d.priority === "Critical" ? "bg-red-100 text-red-700" : d.priority === "High" ? "bg-orange-100 text-orange-700" : d.priority === "Medium" ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-600"}`}>{d.priority}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${d.priority === "Critical" ? "bg-red-500/10 text-red-400" : d.priority === "High" ? "bg-orange-500/10 text-orange-400" : d.priority === "Medium" ? "bg-yellow-500/10 text-yellow-400" : "bg-gray-500/10 text-gray-400"}`}>{d.priority}</span>
                       {d.control && <span>🔗 {d.control.control_id}</span>}
                     {d.control && <span>— {d.control.title}</span>}
                       {d.assignees.length > 0 && (
@@ -285,7 +285,7 @@ export default function DeadlinesPage() {
                     <select
                       value={d.status}
                       onChange={e => updateStatus(d.id, e.target.value)}
-                      className="text-xs border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="text-xs border border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white/5 text-white"
                     >
                       <option value="Scheduled">Scheduled</option>
                       <option value="In_Progress">In Progress</option>
@@ -294,8 +294,8 @@ export default function DeadlinesPage() {
                     </select>
                     {canEditDeadline && (
                       <>
-                        <button onClick={() => startEdit(d)} className="text-slate-400 hover:text-slate-600 text-sm p-1" title="Edit">✏️</button>
-                        <button onClick={() => deleteDeadline(d.id)} className="text-red-400 hover:text-red-600 text-sm p-1" title="Delete">🗑️</button>
+                        <button onClick={() => startEdit(d)} className="text-gray-500 hover:text-gray-300 text-sm p-1" title="Edit">✏️</button>
+                        <button onClick={() => deleteDeadline(d.id)} className="text-red-400 hover:text-red-300 text-sm p-1" title="Delete">🗑️</button>
                       </>
                     )}
                   </div>
@@ -303,7 +303,7 @@ export default function DeadlinesPage() {
               )
             })}
             {sorted.length === 0 && (
-              <div className="bg-white rounded-xl shadow-sm p-12 text-center text-slate-400">
+              <div className="glass-card rounded-xl p-12 text-center text-gray-500 border border-white/10">
                 No deadlines scheduled
               </div>
             )}

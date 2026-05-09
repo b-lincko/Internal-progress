@@ -60,51 +60,51 @@ export default function ProjectsPage() {
   }
 
   const statusColors: Record<string, string> = {
-    Planning: "bg-slate-100 text-slate-700",
-    Active: "bg-blue-100 text-blue-700",
-    On_Hold: "bg-amber-100 text-amber-700",
-    Completed: "bg-emerald-100 text-emerald-700",
-    Cancelled: "bg-red-100 text-red-700"
+    Planning: "bg-white/5 text-gray-300",
+    Active: "bg-blue-500/10 text-blue-400",
+    On_Hold: "bg-amber-500/10 text-amber-400",
+    Completed: "bg-emerald-500/10 text-emerald-400",
+    Cancelled: "bg-red-500/10 text-red-400"
   }
 
   const priorityColors: Record<string, string> = {
-    Low: "bg-gray-100 text-gray-600",
-    Medium: "bg-yellow-100 text-yellow-700",
-    High: "bg-orange-100 text-orange-700",
-    Critical: "bg-red-100 text-red-700"
+    Low: "bg-white/5 text-gray-400",
+    Medium: "bg-yellow-500/10 text-yellow-400",
+    High: "bg-orange-500/10 text-orange-400",
+    Critical: "bg-red-500/10 text-red-400"
   }
 
   return (
-    <AppLayout>
+    <AppLayout title="Projects" subtitle="Active projects">
       <div className="max-w-6xl">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Projects</h1>
-            <p className="text-slate-500 mt-1">{projects.length} projects</p>
+            <h1 className="text-3xl font-bold text-white">Projects</h1>
+            <p className="text-gray-500 mt-1">{projects.length} projects</p>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            className="bg-violet-600 hover:bg-violet-500 text-white px-4 py-2 rounded-lg font-medium transition-colors"
           >
             {showForm ? "Cancel" : "+ New Project"}
           </button>
         </div>
 
         {showForm && (
-          <form onSubmit={createProject} className="bg-white rounded-xl shadow-sm p-6 mb-6">
-            <h3 className="font-bold text-slate-900 mb-4">Create Project</h3>
+          <form onSubmit={createProject} className="glass-card rounded-xl p-6 mb-6 border border-white/10">
+            <h3 className="font-bold text-white mb-4">Create Project</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input
                 placeholder="Project name"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                className="border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white/5 text-white"
                 required
               />
               <select
                 value={formData.priority}
                 onChange={e => setFormData({ ...formData, priority: e.target.value })}
-                className="border border-slate-200 rounded-lg px-4 py-2.5"
+                className="border border-white/10 rounded-lg px-4 py-2.5 bg-white/5 text-white"
               >
                 <option value="Low">Low Priority</option>
                 <option value="Medium">Medium Priority</option>
@@ -115,14 +115,14 @@ export default function ProjectsPage() {
                 type="date"
                 value={formData.start_date}
                 onChange={e => setFormData({ ...formData, start_date: e.target.value })}
-                className="border border-slate-200 rounded-lg px-4 py-2.5"
+                className="border border-white/10 rounded-lg px-4 py-2.5 bg-white/5 text-white"
                 placeholder="Start date"
               />
               <input
                 type="date"
                 value={formData.end_date}
                 onChange={e => setFormData({ ...formData, end_date: e.target.value })}
-                className="border border-slate-200 rounded-lg px-4 py-2.5"
+                className="border border-white/10 rounded-lg px-4 py-2.5 bg-white/5 text-white"
                 placeholder="End date"
               />
             </div>
@@ -130,13 +130,13 @@ export default function ProjectsPage() {
               placeholder="Description"
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
-              className="w-full border border-slate-200 rounded-lg px-4 py-2.5 mt-4 h-20 resize-none"
+              className="w-full border border-white/10 rounded-lg px-4 py-2.5 mt-4 h-20 resize-none bg-white/5 text-white"
             />
             <div className="mt-4">
-              <label className="block text-sm font-medium text-slate-600 mb-2">Assign Members</label>
+              <label className="block text-sm font-medium text-gray-400 mb-2">Assign Members</label>
               <div className="flex flex-wrap gap-2">
                 {users.map(u => (
-                  <label key={u.id} className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg cursor-pointer">
+                  <label key={u.id} className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg cursor-pointer border border-white/10">
                     <input
                       type="checkbox"
                       checked={memberIds.includes(u.id)}
@@ -145,57 +145,57 @@ export default function ProjectsPage() {
                         else setMemberIds(memberIds.filter(id => id !== u.id))
                       }}
                     />
-                    <span className="text-sm">{u.name}</span>
+                    <span className="text-sm text-gray-300">{u.name}</span>
                   </label>
                 ))}
               </div>
             </div>
-            <button type="submit" className="mt-4 bg-primary-600 text-white px-6 py-2.5 rounded-lg font-medium">
+            <button type="submit" className="mt-4 bg-violet-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-violet-500">
               Create Project
             </button>
           </form>
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full"/></div>
+          <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-violet-600 border-t-transparent rounded-full"/></div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {projects.map(p => (
-              <div key={p.id} className="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-all">
+              <div key={p.id} className="glass-card rounded-xl p-5 hover:shadow-md transition-all border border-white/10">
                 <div className="flex items-start justify-between mb-3">
-                  <h3 className="font-bold text-slate-900 text-lg">{p.name}</h3>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[p.status] || "bg-slate-100"}`}>
+                  <h3 className="font-bold text-white text-lg">{p.name}</h3>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[p.status] || "bg-white/5 text-gray-300"}`}>
                     {p.status.replace("_", " ")}
                   </span>
                 </div>
-                <p className="text-sm text-slate-500 mb-3 line-clamp-2">{p.description || "No description"}</p>
+                <p className="text-sm text-gray-400 mb-3 line-clamp-2">{p.description || "No description"}</p>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${priorityColors[p.priority] || "bg-gray-100"}`}>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${priorityColors[p.priority] || "bg-white/5"}`}>
                     {p.priority}
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-gray-500">
                     {p.progress || 0}% complete
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex -space-x-2">
                     {(p.members || []).slice(0, 3).map((m: any) => (
-                      <div key={m.id} className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center text-xs text-primary-700 border-2 border-white" title={m.user?.name}>
+                      <div key={m.id} className="w-7 h-7 bg-violet-500/20 rounded-full flex items-center justify-center text-xs text-violet-300 border-2 border-[#0f0f1a]" title={m.user?.name}>
                         {m.user?.name?.charAt(0).toUpperCase() || "?"}
                       </div>
                     ))}
                     {(p.members || []).length > 3 && (
-                      <div className="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center text-xs text-slate-500 border-2 border-white">
+                      <div className="w-7 h-7 bg-white/5 rounded-full flex items-center justify-center text-xs text-gray-500 border-2 border-[#0f0f1a]">
                         +{(p.members || []).length - 3}
                       </div>
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <Link href={`/projects/${p.id}`} className="text-primary-600 hover:text-primary-800 text-sm font-medium">
+                    <Link href={`/projects/${p.id}`} className="text-violet-400 hover:text-violet-300 text-sm font-medium">
                       View →
                     </Link>
                     {(me?.role === "Admin" || p.created_by === me?.id) && (
-                      <button onClick={() => deleteProject(p.id)} className="text-red-400 hover:text-red-600 text-sm">
+                      <button onClick={() => deleteProject(p.id)} className="text-red-400 hover:text-red-300 text-sm">
                         Delete
                       </button>
                     )}

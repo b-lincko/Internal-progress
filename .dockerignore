@@ -1,13 +1,20 @@
-# Don't copy local env/config into Docker image
-.env
-.env.local
-.env.*.local
 node_modules
 .next
+coverage
+.env
+.env.local
+.env.production
 *.log
-npm-debug.log*
+*.tar.gz
+*.zip
+.DS_Store
 .git
 .gitignore
+.github
 README.md
-dev.log
-start.log
+docker-compose*.yml
+Dockerfile*
+*.sh
+.vscode
+*.md
+!DEPLOY.md

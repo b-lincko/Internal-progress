@@ -13,69 +13,62 @@ export default async function ControlsPage() {
     orderBy: { control_id: "asc" }
   })
 
-  const domains = Array.from(new Set(controls.map(c => c.domain)))
-
   return (
-    <AppLayout>
+    <AppLayout title="Controls" subtitle={`${controls.length} controls`}>
       <div className="max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Controls</h1>
-          <p className="text-slate-500 mt-1">{controls.length} controls</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="glass-card rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-100">
-                  <th className="text-left p-4 text-sm font-semibold text-slate-500">Status</th>
-                  <th className="text-left p-4 text-sm font-semibold text-slate-500">Control ID</th>
-                  <th className="text-left p-4 text-sm font-semibold text-slate-500">Domain</th>
-                  <th className="text-left p-4 text-sm font-semibold text-slate-500">Title</th>
-                  <th className="text-left p-4 text-sm font-semibold text-slate-500">Owner</th>
-                  <th className="text-left p-4 text-sm font-semibold text-slate-500">Evidence</th>
+                <tr className="border-b border-white/10">
+                  <th className="text-left p-4 text-sm font-semibold text-gray-500">Status</th>
+                  <th className="text-left p-4 text-sm font-semibold text-gray-500">Control ID</th>
+                  <th className="text-left p-4 text-sm font-semibold text-gray-500">Domain</th>
+                  <th className="text-left p-4 text-sm font-semibold text-gray-500">Title</th>
+                  <th className="text-left p-4 text-sm font-semibold text-gray-500">Owner</th>
+                  <th className="text-left p-4 text-sm font-semibold text-gray-500">Evidence</th>
                 </tr>
               </thead>
               <tbody>
                 {controls.map((c: any, idx: number) => (
                   <tr
                     key={c.id}
-                    className={`border-b border-slate-50 hover:bg-slate-50/80 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"}`}
+                    className={`border-b border-white/5 hover:bg-white/5 transition-colors ${idx % 2 === 0 ? "bg-white/[0.02]" : ""}`}
                   >
                     <td className="p-4">
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${
                           c.status === "Implemented" ? "bg-emerald-500" :
-                          c.status === "In_Progress" ? "bg-amber-500" : "bg-slate-400"
+                          c.status === "In_Progress" ? "bg-amber-500" : "bg-gray-500"
                         }`} />
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
-                          c.status === "Implemented" ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
-                          c.status === "In_Progress" ? "bg-amber-100 text-amber-700 border-amber-200" :
-                          "bg-slate-100 text-slate-600 border-slate-200"
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${
+                          c.status === "Implemented" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" :
+                          c.status === "In_Progress" ? "bg-amber-500/10 text-amber-400 border-amber-500/30" :
+                          "bg-gray-500/10 text-gray-400 border-gray-500/30"
                         }`}>
                           {c.status?.replace("_", " ")}
                         </span>
                       </div>
                     </td>
                     <td className="p-4">
-                      <Link href={`/controls/${c.id}`} className="font-mono text-sm text-primary-600 hover:text-primary-800 font-medium">
+                      <Link href={`/controls/${c.id}`} className="font-mono text-sm text-violet-400 hover:text-cyan-400 font-medium transition-colors">
                         {c.control_id}
                       </Link>
                     </td>
-                    <td className="p-4 text-sm text-slate-600">{c.domain}</td>
+                    <td className="p-4 text-sm text-gray-400">{c.domain}</td>
                     <td className="p-4">
-                      <Link href={`/controls/${c.id}`} className="text-sm text-slate-800 hover:text-primary-600 font-medium transition-colors">
+                      <Link href={`/controls/${c.id}`} className="text-sm text-gray-200 hover:text-white font-medium transition-colors">
                         {c.title}
                       </Link>
                     </td>
-                    <td className="p-4 text-sm text-slate-500">{c.owner?.name || "—"}</td>
+                    <td className="p-4 text-sm text-gray-500">{c.owner?.name || "—"}</td>
                     <td className="p-4">
                       {c._count?.evidence > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded-md text-xs font-medium">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-violet-500/10 text-violet-400 rounded-md text-xs font-medium border border-violet-500/20">
                           📎 {c._count.evidence}
                         </span>
                       ) : (
-                        <span className="text-slate-300 text-sm">—</span>
+                        <span className="text-gray-600 text-sm">—</span>
                       )}
                     </td>
                   </tr>

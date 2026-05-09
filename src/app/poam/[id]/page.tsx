@@ -92,23 +92,23 @@ export default function PoamDetailPage() {
 
   function severityConfig(severity: string) {
     switch (severity) {
-      case "Critical": return "bg-red-50 text-red-700 border-red-200"
-      case "High": return "bg-orange-50 text-orange-700 border-orange-200"
-      case "Medium": return "bg-yellow-50 text-yellow-700 border-yellow-200"
-      default: return "bg-slate-50 text-slate-600 border-slate-200"
+      case "Critical": return "bg-red-500/10 text-red-400 border-red-500/20"
+      case "High": return "bg-orange-500/10 text-orange-400 border-orange-500/20"
+      case "Medium": return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+      default: return "glass-card/5 text-gray-400 border-white/10"
     }
   }
 
   function statusConfig(status: string) {
     switch (status) {
-      case "Completed": return "bg-emerald-50 text-emerald-700 border-emerald-200"
-      case "In_Progress": return "bg-blue-50 text-blue-700 border-blue-200"
-      default: return "bg-slate-50 text-slate-600 border-slate-200"
+      case "Completed": return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+      case "In_Progress": return "bg-blue-500/10 text-blue-400 border-blue-500/20"
+      default: return "glass-card/5 text-gray-400 border-white/10"
     }
   }
 
-  if (loading) return <AppLayout><div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full"/></div></AppLayout>
-  if (!poam) return <AppLayout><div className="text-center py-12 text-slate-400">POA&M not found</div></AppLayout>
+  if (loading) return <AppLayout><div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-violet-600 border-t-transparent rounded-full"/></div></AppLayout>
+  if (!poam) return <AppLayout><div className="text-center py-12 text-gray-500">POA&M not found</div></AppLayout>
 
   const isOverdue = new Date(poam.due_date) < new Date() && poam.status !== "Completed"
 
@@ -116,18 +116,18 @@ export default function PoamDetailPage() {
     <AppLayout>
       <div className="max-w-4xl">
         <div className="mb-6">
-          <Link href="/poam" className="text-sm text-slate-500 hover:text-primary-600 transition-colors flex items-center gap-1">
+          <Link href="/poam" className="text-sm text-gray-500 hover:text-violet-400 transition-colors flex items-center gap-1">
             ← Back to POA&M Tracker
           </Link>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-8 mb-6">
+        <div className="glass-card rounded-xl  p-8 mb-6">
           <div className="flex items-start justify-between mb-6">
             <div>
-              <div className="text-sm font-medium text-slate-400 mb-1">
-                Control: <Link href={`/controls/${poam.control_id}`} className="text-primary-600 hover:text-primary-800">{poam.control?.control_id}</Link>
+              <div className="text-sm font-medium text-gray-500 mb-1">
+                Control: <Link href={`/controls/${poam.control_id}`} className="text-violet-400 hover:text-violet-300">{poam.control?.control_id}</Link>
               </div>
-              <h1 className="text-2xl font-bold text-slate-900">{poam.control?.title}</h1>
+              <h1 className="text-2xl font-bold text-white">{poam.control?.title}</h1>
             </div>
             <div className="flex items-center gap-2">
               <span className={`px-4 py-2 rounded-full text-sm font-bold border ${severityConfig(poam.severity)}`}>
@@ -137,7 +137,7 @@ export default function PoamDetailPage() {
                 {poam.status?.replace("_", " ")}
               </span>
               {isOverdue && (
-                <span className="px-4 py-2 rounded-full text-sm font-bold bg-red-50 text-red-700 border border-red-200">
+                <span className="px-4 py-2 rounded-full text-sm font-bold bg-red-500/10 text-red-400 border border-red-200">
                   ⚠️ OVERDUE
                 </span>
               )}
@@ -147,17 +147,17 @@ export default function PoamDetailPage() {
           {editing ? (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">Weakness / Finding</label>
-                <textarea value={weakness} onChange={e => setWeakness(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 h-24 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" />
+                <label className="block text-sm font-medium text-gray-400 mb-2">Weakness / Finding</label>
+                <textarea value={weakness} onChange={e => setWeakness(e.target.value)} className="w-full border border-white/10 rounded-lg px-4 py-2.5 h-24 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">Remediation Plan</label>
-                <textarea value={remediation} onChange={e => setRemediation(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 h-24 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" />
+                <label className="block text-sm font-medium text-gray-400 mb-2">Remediation Plan</label>
+                <textarea value={remediation} onChange={e => setRemediation(e.target.value)} className="w-full border border-white/10 rounded-lg px-4 py-2.5 h-24 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-2">Severity</label>
-                  <select value={severity} onChange={e => setSeverity(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Severity</label>
+                  <select value={severity} onChange={e => setSeverity(e.target.value)} className="w-full border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500">
                     <option value="Low">Low</option>
                     <option value="Medium">Medium</option>
                     <option value="High">High</option>
@@ -165,23 +165,23 @@ export default function PoamDetailPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-2">Status</label>
-                  <select value={status} onChange={e => setStatus(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Status</label>
+                  <select value={status} onChange={e => setStatus(e.target.value)} className="w-full border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500">
                     <option value="Open">Open</option>
                     <option value="In_Progress">In Progress</option>
                     <option value="Completed">Completed</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-2">Due Date</label>
-                  <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full border border-slate-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Due Date</label>
+                  <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full border border-white/10 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500" />
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
-                <button onClick={savePoam} disabled={saving} className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-500 transition-colors disabled:opacity-50">
+                <button onClick={savePoam} disabled={saving} className="px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-500/100 transition-colors disabled:opacity-50">
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
-                <button onClick={() => setEditing(false)} className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
+                <button onClick={() => setEditing(false)} className="px-4 py-2 glass-card/10 text-gray-400 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors">
                   Cancel
                 </button>
               </div>
@@ -189,25 +189,25 @@ export default function PoamDetailPage() {
           ) : (
             <div className="space-y-6">
               <div>
-                <h3 className="text-sm font-semibold text-slate-500 mb-2">Weakness / Finding</h3>
-                <p className="text-slate-700 leading-relaxed">{poam.weakness}</p>
+                <h3 className="text-sm font-semibold text-gray-500 mb-2">Weakness / Finding</h3>
+                <p className="text-gray-400 leading-relaxed">{poam.weakness}</p>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-slate-500 mb-2">Remediation Plan</h3>
-                <p className="text-slate-700 leading-relaxed">{poam.remediation_plan}</p>
+                <h3 className="text-sm font-semibold text-gray-500 mb-2">Remediation Plan</h3>
+                <p className="text-gray-400 leading-relaxed">{poam.remediation_plan}</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-slate-50 rounded-lg p-4">
-                  <div className="text-xs text-slate-400 mb-1">Severity</div>
-                  <div className="font-medium text-slate-700">{poam.severity}</div>
+                <div className="glass-card/5 rounded-lg p-4">
+                  <div className="text-xs text-gray-500 mb-1">Severity</div>
+                  <div className="font-medium text-gray-400">{poam.severity}</div>
                 </div>
-                <div className="bg-slate-50 rounded-lg p-4">
-                  <div className="text-xs text-slate-400 mb-1">Status</div>
-                  <div className="font-medium text-slate-700">{poam.status?.replace("_", " ")}</div>
+                <div className="glass-card/5 rounded-lg p-4">
+                  <div className="text-xs text-gray-500 mb-1">Status</div>
+                  <div className="font-medium text-gray-400">{poam.status?.replace("_", " ")}</div>
                 </div>
-                <div className={`rounded-lg p-4 ${isOverdue ? "bg-red-50" : "bg-slate-50"}`}>
-                  <div className="text-xs text-slate-400 mb-1">Due Date</div>
-                  <div className={`font-medium ${isOverdue ? "text-red-600" : "text-slate-700"}`}>
+                <div className={`rounded-lg p-4 ${isOverdue ? "bg-red-500/10" : "glass-card/5"}`}>
+                  <div className="text-xs text-gray-500 mb-1">Due Date</div>
+                  <div className={`font-medium ${isOverdue ? "text-red-400" : "text-gray-400"}`}>
                     {new Date(poam.due_date).toLocaleDateString()}
                     {isOverdue && " (Overdue)"}
                   </div>
@@ -220,15 +220,15 @@ export default function PoamDetailPage() {
         <div className="flex gap-3">
           {!editing && (
             <>
-              <button onClick={() => setEditing(true)} className="px-4 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-500 transition-colors">
+              <button onClick={() => setEditing(true)} className="px-4 py-2.5 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-500/100 transition-colors">
                 ✏️ Edit
               </button>
-              <button onClick={downloadPDF} className="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors border border-slate-200">
+              <button onClick={downloadPDF} className="px-4 py-2.5 glass-card/10 text-gray-400 rounded-lg text-sm font-medium hover:bg-white/10 transition-colors border border-white/10">
                 📄 Download PDF
               </button>
             </>
           )}
-          <button onClick={deletePoam} disabled={deleting} className="px-4 py-2.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors border border-red-200 ml-auto">
+          <button onClick={deletePoam} disabled={deleting} className="px-4 py-2.5 bg-red-500/10 text-red-400 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors border border-red-200 ml-auto">
             {deleting ? "Deleting..." : "🗑️ Delete"}
           </button>
         </div>

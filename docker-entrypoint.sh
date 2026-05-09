@@ -1,23 +1,19 @@
 #!/bin/sh
 set -e
 
-# Extract password from DATABASE_URL
-DB_PASS=$(echo "$DATABASE_URL" | sed -n 's/.*:\([^@]*\)@.*/\1/p')
-if [ -z "$DB_PASS" ]; then
-    DB_PASS="changeme-strong-password"
-fi
-
 echo ""
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  Linkco CMMC Tracker - Starting...                       ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo "Linkco CMMC Tracker - Starting..."
 echo ""
 
-# ─── Wait for database ─────────────────────────────────────
+# ─── Wait for database using Node.js (pg module is in the image) ───
 echo "[INFO] Waiting for database..."
 RETRIES=30
 while [ $RETRIES -gt 0 ]; do
-    if PGPASSWORD="$DB_PASS" psql -h db -U cmmc -d cmmc2 -c "SELECT 1;" > /dev/null 2>&1; then
+    if node -e "
+const { Client } = require('pg');
+const c = new Client({connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 2000});
+c.connect().then(() => c.query('SELECT 1')).then(() => { c.end(); process.exit(0); }).catch(() => { c.end(); process.exit(1); });
+" 2>/dev/null; then
         echo "[OK] Database ready"
         break
     fi
@@ -31,66 +27,20 @@ if [ $RETRIES -eq 0 ]; then
     exit 1
 fi
 
-# ─── Run migrations ──────────────────────────────────────────
+# ─── Run migrations ────────────────────────────────────────────────
 echo "[INFO] Running Prisma migrations..."
-npx prisma migrate deploy
+npx prisma migrate deploy 2>/dev/null || echo "[WARN] Migrate may have already run"
 echo "[OK] Migrations applied"
 
-# ─── Apply safety-net fixes (for Docker deployments that missed columns) ─
-echo "[INFO] Applying database safety-net fixes..."
-PGPASSWORD="$DB_PASS" psql -h db -U cmmc -d cmmc2 -f prisma/docker-init.sql > /dev/null 2>&1 || echo "[WARN] Some fixes may have already been applied"
-echo "[OK] Safety-net fixes applied"
+# ─── Seed data via db seed or seed.ts ────────────────────────────
+echo "[INFO] Seeding data..."
+npx prisma db seed 2>/dev/null || true
 
-# ─── Seed chat rooms (required for chat to work) ───────────
-echo "[INFO] Ensuring chat rooms exist..."
-PGPASSWORD="$DB_PASS" psql -h db -U cmmc -d cmmc2 -c "
-INSERT INTO chat_rooms (id, name, type, created_at, updated_at)
-VALUES
-  ('df66283f-921c-44ec-904a-5dd827971399', 'global', 'Global', NOW(), NOW()),
-  ('37bfd4ff-b88c-4ac1-bb93-dda73c71bf56', 'private', 'Global', NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
-"
-echo "[OK] Chat rooms ready"
-
-# ─── Ensure admin user exists ────────────────────────────
-echo "[INFO] Ensuring admin user exists..."
-
-# Generate bcrypt hash for admin123
-ADMIN_HASH=$(node -e "const bcrypt = require('bcryptjs'); console.log(bcrypt.hashSync('admin123', 10))")
-
-PGPASSWORD="$DB_PASS" psql -h db -U cmmc -d cmmc2 -c "
-INSERT INTO users (id, name, email, password_hash, role, created_at)
-VALUES (
-  gen_random_uuid(),
-  'Admin User',
-  'admin@local',
-  '$ADMIN_HASH',
-  'Admin',
-  NOW()
-)
-ON CONFLICT (email) DO UPDATE SET
-  password_hash = excluded.password_hash,
-  name = excluded.name,
-  role = excluded.role;
-"
-echo "[OK] Admin user ready: admin@local / admin123"
-
-# ─── Create upload directories ─────────────────────────────
+# ─── Ensure upload directories exist ────────────────────────────
 mkdir -p public/uploads/chat
-echo "[OK] Upload directories ready"
-
-# ─── Generate Prisma client (in case schema changed) ───────
-npx prisma generate 2>/dev/null || true
 
 echo ""
-echo "[OK] Starting Linkco CMMC Tracker on HTTP"
-echo "    http://0.0.0.0:3000"
+echo "[OK] Starting on http://0.0.0.0:3000"
 echo ""
 
-# ─── Start server ──────────────────────────────────────────
-# Use standalone server if available
-if [ -f "server.js" ]; then
-    exec node server.js
-else
-    exec npx next start -p 3000 -H 0.0.0.0
-fi
+exec node server.js

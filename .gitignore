@@ -45,3 +45,5 @@ docker-volumes/
 
 # Prisma
 prisma/migrations/
+*.tar.gz
+*.zip

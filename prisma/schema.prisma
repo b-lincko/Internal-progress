@@ -403,6 +403,46 @@ enum TaskStatus {
   Done
 }
 
+model Asset {
+  id           String      @id @default(uuid())
+  name         String
+  asset_type   AssetType   @default(Workstation)
+  ip_address   String?
+  mac_address  String?
+  os           String?
+  os_version   String?
+  location     String?
+  owner        String?
+  status       AssetStatus @default(Active)
+  criticality  String      @default("Medium")
+  last_scan    DateTime?
+  notes        String?
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+
+  @@map("assets")
+}
+
+enum AssetType {
+  Server
+  Workstation
+  Laptop
+  Mobile
+  Network_Device
+  Security_Appliance
+  IoT_Device
+  Printer
+  Other
+}
+
+enum AssetStatus {
+  Active
+  Inactive
+  Decommissioned
+  Lost
+  Under_Maintenance
+}
+
 model SubControl {
   id          String        @id @default(uuid())
   control_id  String
