@@ -1,0 +1,126 @@
+Subject: Linkco CMMC Tracker v2.1 - Now Live! 🚀
+
+Hi Team,
+
+I'm excited to announce that the **Linkco CMMC Tracker v2.1** is now deployed and ready for use!
+
+This is our new CMMC Level 2 Compliance Management System — built to help us track, manage, and collaborate on our cybersecurity compliance journey.
+
+───────────────────────────────────────
+
+🔗 ACCESS THE APP
+
+URL: http://192.168.100.50:3000
+
+Default Login:
+• Email: admin@local
+• Password: admin123
+
+(If you don't have an account yet, please contact the admin to create one for you.)
+
+───────────────────────────────────────
+
+📋 WHAT THIS IS USEFUL FOR
+
+As we work toward CMMC Level 2 compliance, this tool helps us:
+
+✅ Track 108 CMMC controls across 14 security domains
+✅ Monitor deadlines, schedules, and milestones
+✅ Upload and manage compliance evidence and documents
+✅ Track IT assets and network inventory
+✅ Plan of Action & Milestones (POA&M) management
+✅ Team collaboration via built-in chat (Global + Private)
+✅ Project tracking with tasks and progress
+✅ Real-time notifications for updates
+✅ Generate SSP (System Security Plan) PDF exports
+
+───────────────────────────────────────
+
+🎯 KEY FEATURES
+
+🔐 ROLE-BASED ACCESS
+• Admin — Full access, user management, admin panel
+• Manager — Can edit controls, create deadlines, upload docs, create projects
+• Viewer — Read-only access + chat + view assigned items
+
+🛡️ CMMC CONTROLS
+• All 108 CMMC 2.0 controls pre-loaded
+• Status tracking: Not Started → In Progress → Implemented
+• Link evidence and create POA&Ms per control
+
+📅 SCHEDULES & DEADLINES
+• Create compliance deadlines
+• Assign to team members
+• Priority levels: Low, Medium, High, Critical
+• Overdue highlighting
+
+📁 DOCUMENT MANAGER
+• Folder-based file explorer
+• Upload compliance evidence (PDFs, images, etc.)
+• Access control per user (Read/Write/Admin)
+• Audit trail — see who did what and when
+
+💬 TEAM CHAT
+• Global chat room for team announcements
+• Private messaging between users
+• File sharing in chat
+• Voice messages and file uploads
+
+📊 PROJECT TRACKER
+• Create compliance projects
+• Add tasks and assign members
+• Track progress
+
+💻 ASSET INVENTORY
+• Track IT assets: servers, workstations, laptops, network devices
+• Status tracking: Active, Inactive, Decommissioned, Maintenance
+• Criticality levels
+
+🔔 NOTIFICATIONS
+• Automatic notifications for schedules, documents, projects
+• Unread badge in sidebar
+• Real-time updates
+
+🌓 PROFESSIONAL UI
+• Dark theme with glass card design
+• Mobile-friendly responsive layout
+
+───────────────────────────────────────
+
+🚀 GETTING STARTED
+
+1. Go to: http://192.168.100.50:3000
+2. Log in with your credentials
+3. Navigate to the Dashboard for an overview
+4. Check the Controls page to see our compliance status
+5. Use the Chat for team communication
+6. Upload evidence in the Documents section
+
+───────────────────────────────────────
+
+📝 IMPORTANT NOTES
+
+• Please change your default password after first login (go to Profile)
+• If you encounter any issues, please report them immediately
+• The admin can create new users, reset passwords, and manage roles
+• All data is stored securely in our local PostgreSQL database
+• This is an internal tool — please do not share access externally
+
+───────────────────────────────────────
+
+❓ NEED HELP?
+
+If you have questions, issues, or need a user account created, please reach out to:
+• Admin (admin@local)
+• Or reply to this email
+
+We're all learning this system together — your feedback is valuable!
+
+───────────────────────────────────────
+
+Best regards,
+[Your Name]
+
+---
+Linkco Systems | CMMC Compliance Team
+http://192.168.100.50:3000
