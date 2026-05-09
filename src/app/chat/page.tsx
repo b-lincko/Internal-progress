@@ -65,6 +65,9 @@ export default function ChatPage() {
     if (!user) return
     const params = new URLSearchParams()
     
+    // Always include userId for proper filtering
+    params.set("userId", user.id)
+    
     if (activeTab === "private" && activeContact) {
       params.set("partnerId", activeContact.id)
     }
