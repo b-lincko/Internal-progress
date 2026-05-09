@@ -7,13 +7,13 @@ echo "║  Linkco CMMC Tracker v2.1 - Starting...                  ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 
-# ─── Install pg if missing (fallback) ──────────────────────────────
+# ─── Install pg module if missing ──────────────────────────────
 if ! node -e "require('pg')" 2>/dev/null; then
     echo "[INFO] Installing pg module..."
     npm install pg --no-save 2>/dev/null || true
 fi
 
-# ─── Wait for database ────────────────────────────────────────────
+# ─── Wait for database ──────────────────────────────────────────
 echo "[INFO] Waiting for database..."
 RETRIES=60
 while [ $RETRIES -gt 0 ]; do
@@ -35,23 +35,22 @@ if [ $RETRIES -eq 0 ]; then
     exit 1
 fi
 
-# ─── Run migrations ────────────────────────────────────────────────
-echo "[INFO] Running Prisma migrations..."
-if npx prisma migrate deploy 2>/dev/null; then
-    echo "  ✓ Migrations applied"
-else
-    echo "  ⚠ Migrations may have already run"
-fi
+# ─── Run migrations ────────────────────────────────────────────
+echo "[INFO] Running migrations..."
+npx prisma migrate deploy 2>/dev/null || {
+    echo "  ...retrying in 3s"
+    sleep 3
+    npx prisma migrate deploy
+}
+echo "  ✓ Migrations applied"
 
-# ─── Seed data ─────────────────────────────────────────────────────
+# ─── Seed data ────────────────────────────────────────────────
 echo "[INFO] Seeding database..."
-if npx prisma db seed 2>/dev/null; then
-    echo "  ✓ Database seeded"
-else
-    echo "  ⚠ Seed may have already run or failed (non-critical)"
-fi
+node prisma/seed.js 2>/dev/null || {
+    echo "  ⚠ Seed may have already run or failed"
+}
+echo "  ✓ Seed complete"
 
-# ─── Ensure upload directories ────────────────────────────────────
 mkdir -p public/uploads/chat
 echo "  ✓ Upload directories ready"
 
